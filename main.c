@@ -17,6 +17,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h>
+#include <time.h>
+
 #include "ch.h"
 #include "hal.h"
 #include "test.h"
@@ -24,9 +27,7 @@
 #include "shell.h"
 #include "drivers/debug.h"
 #include "chprintf.h"
-
 #include "power.h"
-#include "drivers/sdcard.h"
 #include "drivers/usb_serial.h"
 #include "drivers/gps.h"
 #include "drivers/gsm.h"
@@ -34,15 +35,16 @@
 #include "drivers/reset_button.h"
 #include "drivers/rtchelpers.h"
 
-
-/* I2C interface #2 */
+/* I2C interface #1 */
+// TODO: This should probably be defined in board.h or something. It needs to be globally accessible because in case of I2C timeout we *must* reinit the whole I2C subsystem
 static const I2CConfig i2cfg1 = {
     OPMODE_I2C,
     400000,
     FAST_DUTY_CYCLE_2,
 };
-
+// TODO: I guess this does not have to be global
 static i2cflags_t i2c_errors = 0;
+
 
 /*===========================================================================*/
 /* Command line related.                                                     */
@@ -187,56 +189,9 @@ static void cmd_http(BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
-
-static void cmd_i2cscan(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    msg_t status = RDY_OK;
-    //uint8_t txbuff[1];
-    uint8_t rxbuff[1];
-    uint8_t txbuff[1];
-    uint8_t addr;
-    chprintf(chp, "Starting scan\r\n");
-    chThdSleepMilliseconds(200);
-    i2cAcquireBus(&I2CD1);
-    i2cStart(&I2CD1, &i2cfg1);
-    // Starting from 0x0 will hang (I guess the DMA thingy does not like all-call addresses...)
-    for (addr=1; addr < 128; addr++)
-    {
-        chprintf(chp, "Checking 0x%02X\r\n", addr);
-        chThdSleepMilliseconds(100);
-        //status = i2cMasterReceiveTimeout(&I2CD1, addr, rxbuff, 1, MS2ST(500));
-        txbuff[0] = 0; 
-        status = i2cMasterTransmitTimeout(&I2CD1, addr, txbuff, 1, rxbuff, 0, MS2ST(500));
-        switch(status)
-        {
-            case RDY_OK:
-                chprintf(chp, "FOUND device at 0x%02X\r\n", addr);
-                break;
-            case RDY_RESET:
-                i2c_errors = i2cGetErrors(&I2CD1);
-                // error values: http://chibios.sourceforge.net/docs/hal_stm32f4xx_rm/group___i2_c.html#ga653f9c593af20d15fdbf893e4c117d78
-                chprintf(chp, "no device at 0x%02X, errors: 0x%02X I2C1->SR1=0x%04X\r\n", addr, i2c_errors, I2C1->SR1);
-                // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
-                i2cStop(&I2CD1);
-                I2C1->CR1 |= I2C_CR1_SWRST;
-                i2cStart(&I2CD1, &i2cfg1);
-                break;
-            case RDY_TIMEOUT:
-                chprintf(chp, "no device at 0x%02X, TIMEOUT\r\n", addr, i2c_errors);
-                // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
-                i2cStop(&I2CD1);
-                I2C1->CR1 |= I2C_CR1_SWRST;
-                i2cStart(&I2CD1, &i2cfg1);
-                break;
-        }
-    }
-    chprintf(chp, "scan done\r\n");
-    i2cStop(&I2CD1);
-    i2cReleaseBus(&I2CD1);
-}
-
+/**
+ * Test command to read first 6 registers of the accelerometer
+ */
 static void cmd_accread(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argc;
@@ -282,7 +237,6 @@ static void cmd_accread(BaseSequentialStream *chp, int argc, char *argv[])
 }    
 
 
-
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
     {"threads", cmd_threads},
@@ -292,17 +246,9 @@ static const ShellCommand commands[] = {
     {"http", cmd_http},
     {"stop", cmd_stop},
     {"standby", cmd_standby},
-
     {"date", cmd_date},
     {"alarm", cmd_alarm},
     {"wakeup", cmd_wakeup},
-
-    {"sdenable", sdcard_cmd_enable},
-    {"mount", sdcard_cmd_mount},
-    {"unmount", sdcard_cmd_unmount},
-    {"ls", sdcard_cmd_ls},
-
-    {"scan", cmd_i2cscan},
     {"acc", cmd_accread},
     {NULL, NULL}
 };
@@ -355,7 +301,6 @@ int main(void)
     halInit();
     chSysInit();
 
-
     /*
      * Initializes a serial-over-USB CDC driver.
      */
@@ -367,7 +312,7 @@ int main(void)
     button_init();
      */
     extStart(&EXTD1, &extcfg);
-    
+
     /*
      * Shell manager initialization.
      */
