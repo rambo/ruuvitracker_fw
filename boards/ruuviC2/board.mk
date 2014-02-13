@@ -4,6 +4,7 @@ BOARDSRC = boards/ruuviC2/board.c
 # Required include directories
 BOARDINC = boards/ruuviC2
 
+CORTEX_ENABLE_WFI_IDLE=TRUE
 USE_FPU = yes
 
 .DEFAULT_GOAL := all
