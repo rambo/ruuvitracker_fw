@@ -533,8 +533,9 @@ int main(void) {
    */
   /*
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, (tfunc_t)Thread1, NULL);
-  palClearPad(GPIOB, GPIOB_LED2);
   */
+  // Clear the USB indicator LED
+  palClearPad(GPIOB, GPIOB_LED2);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
