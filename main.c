@@ -468,7 +468,7 @@ static void cmd_enter_standby(BaseSequentialStream *chp, int argc, char *argv[])
     (void)argv;
     chprintf(chp, "Entering STANDBY mode\r\nPush the button or wait for RTC to wake us up\r\n");
     chThdSleepMilliseconds(100);
-    power_enter_stop();
+    power_enter_standby();
     chprintf(chp, "Woke up (from STANDBY, we should never see this!)\r\n");
 }
 
