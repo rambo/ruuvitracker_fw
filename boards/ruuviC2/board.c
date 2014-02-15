@@ -52,6 +52,24 @@ void __early_init(void) {
   stm32_clock_init();
 }
 
+/**
+ * Internal helper to check the card insertion switch
+ */
+bool_t _sdcard_is_inserted(void)
+{
+    /* The pull-up is tied to ground when card is inserted */
+    return (palReadPad(GPIOC, GPIOC_SD_CARD_INSERTED) == FALSE);
+}
+
+/**
+ * Internal helper to check the card regulator (LDO2)
+ */
+bool_t _sdcard_is_enabled(void)
+{
+    /* Also make sure the card regulator is enabled */
+    return palReadPad(GPIOC, GPIOC_ENABLE_LDO2);
+}
+
 #if HAL_USE_SDC || defined(__DOXYGEN__)
 /**
  * @brief   SDC card detection.
@@ -59,10 +77,8 @@ void __early_init(void) {
 bool_t sdc_lld_is_card_inserted(SDCDriver *sdcp) {
 
   (void)sdcp;
-              /* The pull-up is tied to ground when card is inserted */
-  return (   (palReadPad(GPIOC, GPIOC_SD_CARD_INSERTED) == FALSE)
-             /* Also make sure the card regulator is enabled */
-          && palReadPad(GPIOC, GPIOC_ENABLE_LDO2))
+  return (   _sdcard_is_inserted()
+          && _sdcard_is_enabled());
 }
 
 /**
@@ -83,8 +99,8 @@ bool_t sdc_lld_is_write_protected(SDCDriver *sdcp) {
 bool_t mmc_lld_is_card_inserted(MMCDriver *mmcp) {
 
   (void)mmcp;
-  /* TODO: Fill the implementation.*/
-  return FALSE;
+  return (   _sdcard_is_inserted()
+          && _sdcard_is_enabled());
 }
 
 /**
@@ -93,7 +109,7 @@ bool_t mmc_lld_is_card_inserted(MMCDriver *mmcp) {
 bool_t mmc_lld_is_write_protected(MMCDriver *mmcp) {
 
   (void)mmcp;
-  /* TODO: Fill the implementation.*/
+  /* We have no input for this, suppose false */
   return FALSE;
 }
 #endif
