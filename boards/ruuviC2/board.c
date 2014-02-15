@@ -59,8 +59,8 @@ void __early_init(void) {
 bool_t sdc_lld_is_card_inserted(SDCDriver *sdcp) {
 
   (void)sdcp;
-  /* TODO: Fill the implementation.*/
-  return TRUE;
+  /* The pull-up is tied to ground when card is inserted */
+  return (palReadPad(GPIOC, GPIOC_SD_CARD_INSERTED) == FALSE)
 }
 
 /**
@@ -69,7 +69,7 @@ bool_t sdc_lld_is_card_inserted(SDCDriver *sdcp) {
 bool_t sdc_lld_is_write_protected(SDCDriver *sdcp) {
 
   (void)sdcp;
-  /* TODO: Fill the implementation.*/
+  /* We have no input for this, suppose false */
   return FALSE;
 }
 #endif /* HAL_USE_SDC */
