@@ -452,6 +452,26 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "GPS stopped\r\n");
 }
 
+static void cmd_enter_stop(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Entering STOP mode\r\nPush the button or wait for RTC to wake us up\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_stop();
+    chprintf(chp, "Woke up\r\n");
+}
+
+static void cmd_enter_standby(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Entering STANDBY mode\r\nPush the button or wait for RTC to wake us up\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_stop();
+    chprintf(chp, "Woke up (from STANDBY, we should never see this!)\r\n");
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -459,6 +479,8 @@ static const ShellCommand commands[] = {
   {"test", cmd_test},
   {"write", cmd_write},
   {"gps_test", cmd_gps},
+  {"enter_stop", cmd_enter_stop},
+  {"enter_standby", cmd_enter_standby},
   {NULL, NULL}
 };
 
@@ -494,6 +516,7 @@ static void Thread1(void *arg) {
 /*
  * Application entry point.
  */
+static const EXTConfig extcfg;
 int main(void) {
   Thread *shelltp = NULL;
 
@@ -506,6 +529,11 @@ int main(void) {
    */
   halInit();
   chSysInit();
+
+  /**
+   * Start the EXT driver
+   */
+  extStart(&EXTD1, &extcfg);
 
   /*
    * Initializes a serial-over-USB CDC driver.
@@ -531,15 +559,14 @@ int main(void) {
   /*
    * Creates the blinker thread.
    */
-  /*
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, (tfunc_t)Thread1, NULL);
-  */
+
   // Clear the USB indicator LED
   palClearPad(GPIOB, GPIOB_LED2);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state.
+   * sleeping in a loop and check the usb state.
    */
   while (TRUE) {
     if (!shelltp && (SDU2.config->usbp->state == USB_ACTIVE)) {
