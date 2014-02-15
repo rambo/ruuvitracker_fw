@@ -464,6 +464,7 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "GPS stopped\r\n");
 }
 
+// After enabling CORTEX_ENABLE_WFI_IDLE both of these fail to wake up with the boot0/pa0 button
 static void cmd_enter_stop(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argc;
