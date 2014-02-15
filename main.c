@@ -459,6 +459,7 @@ static void cmd_enter_stop(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "Entering STOP mode\r\nPush the button or wait for RTC to wake us up\r\n");
     chThdSleepMilliseconds(100);
     power_enter_stop();
+    // For some reason we never return here.
     chprintf(chp, "Woke up\r\n");
 }
 
