@@ -375,6 +375,12 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
             states[tp->p_state], (uint32_t)tp->p_time);
     tp = chRegNextThread(tp);
   } while (tp != NULL);
+#ifdef CORTEX_ENABLE_WFI_IDLE
+  chprintf(chp, "CRTX_ENABLE_WFI_IDLE=%d\r\n", CORTEX_ENABLE_WFI_IDLE);
+#endif
+#ifdef ENABLE_WFI_IDLE
+  chprintf(chp, "ENBL_WFI_IDLE=%d\r\n", ENABLE_WFI_IDLE);
+#endif
 }
 
 static void cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -601,6 +607,7 @@ static void Thread1(void *arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (TRUE) {
+    /*
     systime_t time;
 
     time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
@@ -608,6 +615,8 @@ static void Thread1(void *arg) {
     chThdSleepMilliseconds(time);
     palSetPad(GPIOB, GPIOB_LED1);
     chThdSleepMilliseconds(time);
+    */
+    chThdSleepMilliseconds(1000);
   }
 }
 
