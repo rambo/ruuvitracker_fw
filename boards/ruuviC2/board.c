@@ -59,8 +59,10 @@ void __early_init(void) {
 bool_t sdc_lld_is_card_inserted(SDCDriver *sdcp) {
 
   (void)sdcp;
-  /* The pull-up is tied to ground when card is inserted */
-  return (palReadPad(GPIOC, GPIOC_SD_CARD_INSERTED) == FALSE)
+              /* The pull-up is tied to ground when card is inserted */
+  return (   (palReadPad(GPIOC, GPIOC_SD_CARD_INSERTED) == FALSE)
+             /* Also make sure the card regulator is enabled */
+          && palReadPad(GPIOC, GPIOC_ENABLE_LDO2))
 }
 
 /**
