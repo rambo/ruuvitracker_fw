@@ -16,6 +16,9 @@
 
 #include <stdio.h>
 #include <string.h>
+// Needed for the unixtime conversions
+#include <stdlib.h>
+#include <time.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -23,6 +26,9 @@
 
 #include "shell.h"
 #include "chprintf.h"
+// Time conversion utilities, must be included after hal
+#include "chrtclib.h"
+// Our own widgets
 #include "power.h"
 #include "drivers/gps.h"
 
@@ -473,6 +479,95 @@ static void cmd_enter_standby(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "Woke up (from STANDBY, we should never see this!)\r\n");
 }
 
+/**
+ * Get/set RTC alarm
+ *
+ * From the RTC HAL test
+ */
+static void cmd_alarm(BaseSequentialStream *chp, int argc, char *argv[]){
+  int i = 0;
+  RTCAlarm alarmspec;
+
+  (void)argv;
+  if (argc < 1) {
+    goto ERROR;
+  }
+
+  if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
+    rtcGetAlarm(&RTCD1, 0, &alarmspec);
+    chprintf(chp, "%D%s",alarmspec," - alarm in STM internal format\r\n");
+    return;
+  }
+
+  if ((argc == 2) && (strcmp(argv[0], "set") == 0)){
+    i = atol(argv[1]);
+    alarmspec.tv_datetime = ((i / 10) & 7 << 4) | (i % 10) | RTC_ALRMAR_MSK4 |
+                            RTC_ALRMAR_MSK3 | RTC_ALRMAR_MSK2;
+    rtcSetAlarm(&RTCD1, 0, &alarmspec);
+    return;
+  }
+  else{
+    goto ERROR;
+  }
+
+ERROR:
+  chprintf(chp, "Usage: alarm get\r\n");
+  chprintf(chp, "       alarm set N\r\n");
+  chprintf(chp, "where N is alarm time in seconds\r\n");
+}
+
+/** 
+ * Get/set RTC date
+ *
+ * From the RTC HAL test
+ */
+static void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
+  (void)argv;
+  struct tm timp;
+  time_t unix_time;
+
+  if (argc == 0) {
+    goto ERROR;
+  }
+
+
+  if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
+    unix_time = rtcGetTimeUnixSec(&RTCD1);
+
+    if (unix_time == -1){
+      chprintf(chp, "incorrect time in RTC cell\r\n");
+    }
+    else{
+      chprintf(chp, "%D%s",unix_time," - unix time\r\n");
+      rtcGetTimeTm(&RTCD1, &timp);
+      chprintf(chp, "%s%s",asctime(&timp)," - formatted time string\r\n");
+    }
+    return;
+  }
+
+  if ((argc == 2) && (strcmp(argv[0], "set") == 0)){
+    unix_time = atol(argv[1]);
+    if (unix_time > 0){
+      rtcSetTimeUnixSec(&RTCD1, unix_time);
+      return;
+    }
+    else{
+      goto ERROR;
+    }
+  }
+  else{
+    goto ERROR;
+  }
+
+ERROR:
+  chprintf(chp, "Usage: date get\r\n");
+  chprintf(chp, "       date set N\r\n");
+  chprintf(chp, "where N is time in seconds sins Unix epoch\r\n");
+  chprintf(chp, "you can get current N value from unix console by the command\r\n");
+  chprintf(chp, "%s", "date +\%s\r\n");
+  return;
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -482,6 +577,8 @@ static const ShellCommand commands[] = {
   {"gps_test", cmd_gps},
   {"enter_stop", cmd_enter_stop},
   {"enter_standby", cmd_enter_standby},
+  {"alarm", cmd_alarm},
+  {"date",  cmd_date},
   {NULL, NULL}
 };
 
