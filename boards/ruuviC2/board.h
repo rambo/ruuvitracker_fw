@@ -394,8 +394,8 @@
 				     PIN_PUPDR_FLOATING(GPIOC_DISABLE_CHARGER) | \
 				     PIN_PUPDR_FLOATING(GPIOC_GSM_NETLIGHT) | \
 				     PIN_PUPDR_FLOATING(GPIOC_GSM_STATUS))
-#define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_GSM_PWRKEY) | \
-                                     PIN_ODR_HIGH(GPIOC_ENABLE_GSM_VBAT))
+#define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_GSM_PWRKEY)   | \
+				     PIN_ODR_HIGH(GPIOC_ENABLE_GSM_VBAT))
 #define VAL_GPIOC_AFRL              (0)
 #define VAL_GPIOC_AFRH              (0)
 

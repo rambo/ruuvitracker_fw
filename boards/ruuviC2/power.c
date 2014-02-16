@@ -88,12 +88,12 @@ static void disable_ldo4(void)
 
 static void enable_gsm_fet(void)
 {
-     palSetPad(GPIOC, GPIOC_ENABLE_GSM_VBAT);
+     palClearPad(GPIOC, GPIOC_ENABLE_GSM_VBAT);
 }
 
 static void disable_gsm_fet(void)
 {
-     palClearPad(GPIOC, GPIOC_ENABLE_GSM_VBAT);
+     palSetPad(GPIOC, GPIOC_ENABLE_GSM_VBAT);
 }
 
 void power_enter_stop(void)
