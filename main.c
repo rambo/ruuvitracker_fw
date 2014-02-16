@@ -523,6 +523,35 @@ ERROR:
   chprintf(chp, "where N is alarm time in seconds\r\n");
 }
 
+static void cmd_wakeup(BaseSequentialStream *chp, int argc, char *argv[]){
+  RTCWakeup wakeupspec;
+  int i = 0;
+
+  (void)argv;
+  if (argc < 1) {
+    goto ERROR;
+  }
+
+  if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
+    rtcGetPeriodicWakeup_v2(&RTCD1, &wakeupspec);
+    chprintf(chp, "%D%s",wakeupspec," - alarm in STM internal format\r\n");
+    return;
+  }
+
+  if ((argc == 2) && (strcmp(argv[0], "set") == 0)){
+    i = atol(argv[1]);
+    wakeupspec.wakeup = ((uint32_t)4) << 16; /* select 1 Hz clock source */
+    wakeupspec.wakeup |= i-1; /* set counter value to i-1. Period will be i+1 seconds. */
+    rtcSetPeriodicWakeup_v2(&RTCD1, &wakeupspec);
+    return;
+  }
+
+ERROR:
+  chprintf(chp, "Usage: wakeup get\r\n");
+  chprintf(chp, "       wakeup set N\r\n");
+  chprintf(chp, "where N is recurring alarm time in seconds\r\n");
+}
+
 /** 
  * Get/set RTC date
  *
@@ -586,6 +615,7 @@ static const ShellCommand commands[] = {
   {"enter_standby", cmd_enter_standby},
   {"alarm", cmd_alarm},
   {"date",  cmd_date},
+  {"wakeup",  cmd_wakeup},
   {NULL, NULL}
 };
 
