@@ -351,7 +351,7 @@
  * PC4  - GSM_PWRKEY                (output, open-drain, high).
  * PC5  - GSM_DTR                   (output, low).
  * PC6  - ENABLE_LDO3               (output, low).
- * PC7  - ENABLE_GSM_VBAT           (output, low).
+ * PC7  - ENABLE_GSM_VBAT           (output, open-drain, low).
  * PC8  - ENABLE_LDO2               (output, low).
  * PC9  - GPS_1PPS_SIGNAL           (input floating).
  * PC10 - SD_CARD_INSERTED          (input, pullup).
@@ -382,7 +382,7 @@
 				     PIN_OTYPE_OPENDRAIN(GPIOC_GSM_PWRKEY)   | \
 				     PIN_OTYPE_PUSHPULL(GPIOC_GSM_DTR)	     | \
 				     PIN_OTYPE_PUSHPULL(GPIOC_ENABLE_LDO3)   | \
-				     PIN_OTYPE_PUSHPULL(GPIOC_ENABLE_GSM_VBAT)| \
+				     PIN_OTYPE_OPENDRAIN(GPIOC_ENABLE_GSM_VBAT)| \
 				     PIN_OTYPE_PUSHPULL(GPIOC_ENABLE_LDO2)   | \
 				     PIN_OTYPE_PUSHPULL(GPIOC_GPS_V_BACKUP_PWR))
 #define VAL_GPIOC_OSPEEDR           (0) /* Assume that low speed is enough for all outputs here */
@@ -394,7 +394,8 @@
 				     PIN_PUPDR_FLOATING(GPIOC_DISABLE_CHARGER) | \
 				     PIN_PUPDR_FLOATING(GPIOC_GSM_NETLIGHT) | \
 				     PIN_PUPDR_FLOATING(GPIOC_GSM_STATUS))
-#define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_GSM_PWRKEY))
+#define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_GSM_PWRKEY) | \
+                                     PIN_ODR_LOW(GPIOC_ENABLE_GSM_VBAT))
 #define VAL_GPIOC_AFRL              (0)
 #define VAL_GPIOC_AFRH              (0)
 
