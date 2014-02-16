@@ -111,7 +111,8 @@ void power_enter_standby(void)
     // Actually when coming back from standby we don't have this anymore since it's equivalent to a reset...
     register_power_wakeup_callback(power_wakeup_callback);
 
-    chSysLock();
+    // I copied this from an example, but I think the cleaner solution would be stop the os (as per  wiki) before entering standby
+    //chSysLock();
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= (PWR_CR_PDDS | PWR_CR_LPDS | PWR_CR_CSBF | PWR_CR_CWUF);
     RTC->ISR &= ~(RTC_ISR_ALRBF | RTC_ISR_ALRAF | RTC_ISR_WUTF | RTC_ISR_TAMP1F | RTC_ISR_TSOVF | RTC_ISR_TSF);
