@@ -14,6 +14,16 @@ static MMCConfig mmc_cfg = { &SPID1, &ls_spicfg, &hs_spicfg };
 // where these go ? mmc_is_protected, mmc_is_inserted
 
 
+void sdcard_enable(void)
+{
+    power_request(SDCARD_POWER_DOMAIN);
+}
+
+void sdcard_disable(void)
+{
+    power_release(SDCARD_POWER_DOMAIN);
+}
+
 bool_t sdcard_fs_ready(void)
 {
     return fs_ready;

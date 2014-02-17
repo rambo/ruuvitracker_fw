@@ -6,7 +6,7 @@
 FATFS MMC_FS;
 MMCDriver MMCD1;
 
-#define SDCARD_POWER_DOMAIN = LDO2
+#define SDCARD_POWER_DOMAIN LDO2
 
 /**
  * powers up the sdcard 
