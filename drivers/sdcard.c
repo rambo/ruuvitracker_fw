@@ -6,7 +6,6 @@
 #include "chprintf.h"
 
 static bool_t fs_ready = FALSE;
-// TODO: Doublecheck these settings
 static SPIConfig hs_spicfg = { NULL, GPIOB, 15, 0 };
 static SPIConfig ls_spicfg = { NULL, GPIOB, 15, SPI_CR1_BR_2 | SPI_CR1_BR_1 };
 static MMCConfig mmc_cfg = { &SPID1, &ls_spicfg, &hs_spicfg };
@@ -67,6 +66,7 @@ void sdcard_remove_handler(eventid_t id)
 
 void sdcard_mmcd_init(void)
 {
+    mmcObjectInit(&MMCD1);
     mmcStart(&MMCD1, &mmc_cfg);
 }
 
