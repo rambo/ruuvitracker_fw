@@ -31,6 +31,7 @@
 // Our own widgets
 #include "power.h"
 #include "drivers/gps.h"
+#include "drivers/sdcard.h"
 
 /*===========================================================================*/
 /* USB related stuff.                                                        */
@@ -626,7 +627,15 @@ static void Thread1(void *arg) {
  */
 static const EXTConfig extcfg;
 int main(void) {
+  // Shell thread pointer
   Thread *shelltp = NULL;
+
+  /**
+   * Event listeners and callbacks
+   */
+  static const evhandler_t evhndl[] = {sdcard_insert_handler, sdcard_remove_handler};
+  struct EventListener el0, el1;
+
 
   /*
    * System initializations.
@@ -648,6 +657,14 @@ int main(void) {
    */
   sduObjectInit(&SDU2);
   sduStart(&SDU2, &serusbcfg);
+
+  /*
+   * Start the MMC driver
+   */
+  sdcard_mmcd_init();
+  // And register listeners
+  chEvtRegister(&MMCD1.inserted_event, &el0, 0);
+  chEvtRegister(&MMCD1.removed_event, &el1, 1);
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -677,6 +694,10 @@ int main(void) {
    * sleeping in a loop and check the usb state.
    */
   while (TRUE) {
+    // Start by dispatching all events
+    chEvtDispatch(evhndl, chEvtWaitOne(ALL_EVENTS));
+
+    // Create new shell thread if USB is connected
     if (!shelltp && (SDU2.config->usbp->state == USB_ACTIVE)) {
       palSetPad(GPIOB, GPIOB_LED2);
       shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -685,6 +706,5 @@ int main(void) {
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
       palClearPad(GPIOB, GPIOB_LED2);
     }
-    chThdSleepMilliseconds(1000);
   }
 }

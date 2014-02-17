@@ -1,7 +1,10 @@
 #ifndef SDCARD_H
 #define SDCARD_H
 #include "power.h"
+#include <ff.h>
 
+FATFS MMC_FS;
+MMCDriver MMCD1;
 
 #define SDCARD_POWER_DOMAIN = LDO2
 
@@ -21,7 +24,25 @@ void sdcard_enable(void);
  */
 void sdcard_disable(void);
 
+/**
+ * Check whether we have a mounted fs
+ */
+bool_t sdcard_fs_ready(void);
+
+/**
+ * MMCD system init 
+ *
+ * this should be called from main()
+ */
+void sdcard_mmcd_init(void);
 
 
+/**
+ * These callbacks are called by the MMC driver
+ *
+ * They handle mounting/unmounting the filesystem
+ */
+void sdcard_insert_handler(eventid_t id);
+void sdcard_remove_handler(eventid_t id);
 
 #endif
