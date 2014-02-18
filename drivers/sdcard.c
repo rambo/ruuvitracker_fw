@@ -1,10 +1,6 @@
-#include "ch.h"
-#include "hal.h"
-#include "power.h"
 #include "sdcard.h"
-#include <ff.h>
-#include "chprintf.h"
-
+FATFS MMC_FS;
+MMCDriver MMCD1;
 static bool_t fs_ready = FALSE;
 static SPIConfig hs_spicfg = { NULL, GPIOB, 15, 0 };
 static SPIConfig ls_spicfg = { NULL, GPIOB, 15, SPI_CR1_BR_2 | SPI_CR1_BR_1 };
@@ -20,6 +16,10 @@ void sdcard_enable(void)
 
 void sdcard_disable(void)
 {
+    if (sdcard_fs_ready())
+    {
+        sdcard_unmount();
+    }
     power_release(SDCARD_POWER_DOMAIN);
 }
 
@@ -28,15 +28,23 @@ bool_t sdcard_fs_ready(void)
     return fs_ready;
 }
 
-void sdcard_insert_handler(eventid_t id)
+FRESULT sdcard_unmount(void)
 {
     FRESULT err;
-    (void) id;
+    err = f_mount(0, NULL);
+    mmcDisconnect(&MMCD1);
+    fs_ready = FALSE;
+    return err;
+}
+
+FRESULT sdcard_mount(void)
+{
+    FRESULT err;
     if(mmcConnect(&MMCD1))
     {
         // TODO: how to access the shell output stream ?
         //chprintf((BaseSequentialStream *)&SDU2, "SD: Failed to connect to card\r\n");
-        return;
+        return FR_NOT_READY;
     }
     else
     {
@@ -48,20 +56,27 @@ void sdcard_insert_handler(eventid_t id)
     {
         //chprintf((BaseSequentialStream *)&SDU2, "SD: f_mount() failed %d\r\n", err);
         mmcDisconnect(&MMCD1);
-        return;
+        return err;
     }
     else
     {
         //chprintf((BaseSequentialStream *)&SDU2, "SD: File system mounted\r\n");
     }
     fs_ready = TRUE;
+    return err;
+}
+
+void sdcard_insert_handler(eventid_t id)
+{
+    (void)id;
+    sdcard_mount();
 }
 
 void sdcard_remove_handler(eventid_t id)
 {
     (void)id;
     // TODO: Do we need to do something else to unmount the fs ?? (or is it too late)
-    fs_ready = FALSE;
+    sdcard_unmount();
 }
 
 void sdcard_mmcd_init(void)

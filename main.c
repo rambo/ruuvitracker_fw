@@ -576,6 +576,21 @@ ERROR:
   return;
 }
 
+static void cmd_mount(BaseSequentialStream *chp, int argc, char *argv[]){
+    (void)argv;
+    (void)argc;
+    sdcard_enable();
+    // Wait for the regulator to stabilize
+    chThdSleepMilliseconds(100);
+    sdcard_mount();
+    if (!sdcard_fs_ready())
+    {
+        chprintf(chp, "Mount failed\r\n");
+        return;
+    }
+    chprintf(chp, "Card mounted\r\n");
+}
+
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -587,6 +602,7 @@ static const ShellCommand commands[] = {
   {"enter_standby", cmd_enter_standby},
   {"alarm", cmd_alarm},
   {"date",  cmd_date},
+  {"mount",  cmd_mount},
   {NULL, NULL}
 };
 
@@ -609,16 +625,14 @@ static void Thread1(void *arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (TRUE) {
-    /*
     systime_t time;
-
     time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
     palClearPad(GPIOB, GPIOB_LED1);
     chThdSleepMilliseconds(time);
     palSetPad(GPIOB, GPIOB_LED1);
     chThdSleepMilliseconds(time);
-    */
-    chThdSleepMilliseconds(1000);
+
+    //chThdSleepMilliseconds(1000);
   }
 }
 
@@ -663,8 +677,10 @@ int main(void) {
    */
   sdcard_mmcd_init();
   // And register listeners
+  /*
   chEvtRegister(&MMCD1.inserted_event, &el0, 0);
   chEvtRegister(&MMCD1.removed_event, &el1, 1);
+  */
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.

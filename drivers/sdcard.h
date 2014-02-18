@@ -1,17 +1,19 @@
 #ifndef SDCARD_H
 #define SDCARD_H
+#include "ch.h"
+#include "hal.h"
 #include "power.h"
 #include <ff.h>
-
-FATFS MMC_FS;
-MMCDriver MMCD1;
+// These are going to be needed all over the place so define them as externals
+extern FATFS MMC_FS;
+extern MMCDriver MMCD1;
 
 #define SDCARD_POWER_DOMAIN LDO2
 
 /**
  * powers up the sdcard 
  *
- * mounting the FS is handled by the MMC driver insertion callback
+ * mounting the FS is handled by the MMC driver insertion callback (maybe...)
  *
  */
 void sdcard_enable(void);
@@ -19,7 +21,7 @@ void sdcard_enable(void);
 /**
  * powers down the sdcard (if nothing else is active in the same power domain)
  *
- * Unmounting filesystem is handled by the MMC driver callback
+ * This will also unmount the filesystem regardless of other things in the power domain
  *
  */
 void sdcard_disable(void);
@@ -36,6 +38,19 @@ bool_t sdcard_fs_ready(void);
  */
 void sdcard_mmcd_init(void);
 
+/**
+ * Attempts to mount a filesystem on the card
+ * 
+ * Returns the FRESULT from f_mount
+ */
+FRESULT sdcard_mount(void);
+
+/**
+ * Umounts the filesystem
+ *
+ * Returns the FRESULT from f_mount
+ */
+FRESULT sdcard_unmount(void);
 
 /**
  * These callbacks are called by the MMC driver
