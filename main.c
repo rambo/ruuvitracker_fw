@@ -731,8 +731,10 @@ int main(void) {
   /**
    * Event listeners and callbacks
    */
+   /*
   static const evhandler_t evhndl[] = {sdcard_insert_handler, sdcard_remove_handler};
   struct EventListener el0, el1;
+  */
 
 
   /*
@@ -795,7 +797,10 @@ int main(void) {
    */
   while (TRUE) {
     // Start by dispatching all events
+    /**
+     * actually this is blocking...
     chEvtDispatch(evhndl, chEvtWaitOne(ALL_EVENTS));
+     */
 
     // Create new shell thread if USB is connected
     if (!shelltp && (SDU2.config->usbp->state == USB_ACTIVE)) {
