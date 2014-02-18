@@ -31,6 +31,7 @@
 // Our own widgets
 #include "power.h"
 #include "drivers/gps.h"
+#include "drivers/sdcard.h"
 
 /*===========================================================================*/
 /* USB related stuff.                                                        */
@@ -604,6 +605,74 @@ ERROR:
   return;
 }
 
+static void cmd_mount(BaseSequentialStream *chp, int argc, char *argv[]){
+    (void)argv;
+    (void)argc;
+    sdcard_enable();
+    // Wait for the regulator to stabilize
+    chThdSleepMilliseconds(100);
+    sdcard_mount();
+    if (!sdcard_fs_ready())
+    {
+        chprintf(chp, "Mount failed\r\n");
+        return;
+    }
+    chprintf(chp, "Card mounted\r\n");
+}
+
+static FRESULT scan_files(BaseSequentialStream *chp, char *path)
+{
+    FRESULT res;
+    FILINFO fno;
+    DIR dir;
+    int i;
+    char *fn;   /* This function is assuming non-Unicode cfg. */
+#if _USE_LFN
+    static char lfn[_MAX_LFN + 1];
+    fno.lfname = lfn;
+    fno.lfsize = sizeof(lfn);
+#endif
+
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) {
+        i = strlen(path);
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fname[0] == '.') continue;             /* Ignore dot entry */
+#if _USE_LFN
+            fn = *fno.lfname ? fno.lfname : fno.fname;
+#else
+            fn = fno.fname;
+#endif
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                sprintf(&path[i], "/%s", fn);
+                res = scan_files(chp, path);
+                if (res != FR_OK) break;
+                path[i] = 0;
+            } else {                                       /* It is a file. */
+                chprintf(chp, "%s/%s\n", path, fn);
+            }
+        }
+    }
+
+    return res;
+}
+
+static void cmd_ls(BaseSequentialStream *chp, int argc, char *argv[]){
+    if (!sdcard_fs_ready())
+    {
+        chprintf(chp, "Not mounted\r\n");
+        return;
+    }
+    if (argc < 1)
+    {
+        scan_files(chp, "/");
+        return;
+    }
+    scan_files(chp, argv[0]);
+}
 
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
@@ -616,6 +685,8 @@ static const ShellCommand commands[] = {
   {"alarm", cmd_alarm},
   {"date",  cmd_date},
   {"wakeup",  cmd_wakeup},
+  {"mount",  cmd_mount},
+  {"ls",  cmd_ls},
   {NULL, NULL}
 };
 
@@ -638,16 +709,14 @@ static void Thread1(void *arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (TRUE) {
-    /*
     systime_t time;
-
     time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
     palClearPad(GPIOB, GPIOB_LED1);
     chThdSleepMilliseconds(time);
     palSetPad(GPIOB, GPIOB_LED1);
     chThdSleepMilliseconds(time);
-    */
-    chThdSleepMilliseconds(1000);
+
+    //chThdSleepMilliseconds(1000);
   }
 }
 
@@ -656,7 +725,15 @@ static void Thread1(void *arg) {
  */
 static const EXTConfig extcfg;
 int main(void) {
+  // Shell thread pointer
   Thread *shelltp = NULL;
+
+  /**
+   * Event listeners and callbacks
+   */
+  static const evhandler_t evhndl[] = {sdcard_insert_handler, sdcard_remove_handler};
+  struct EventListener el0, el1;
+
 
   /*
    * System initializations.
@@ -678,6 +755,16 @@ int main(void) {
    */
   sduObjectInit(&SDU2);
   sduStart(&SDU2, &serusbcfg);
+
+  /*
+   * Start the MMC driver
+   */
+  sdcard_mmcd_init();
+  // And register listeners
+  /*
+  chEvtRegister(&MMCD1.inserted_event, &el0, 0);
+  chEvtRegister(&MMCD1.removed_event, &el1, 1);
+  */
 
   /*
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -707,6 +794,10 @@ int main(void) {
    * sleeping in a loop and check the usb state.
    */
   while (TRUE) {
+    // Start by dispatching all events
+    chEvtDispatch(evhndl, chEvtWaitOne(ALL_EVENTS));
+
+    // Create new shell thread if USB is connected
     if (!shelltp && (SDU2.config->usbp->state == USB_ACTIVE)) {
       palSetPad(GPIOB, GPIOB_LED2);
       shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -715,6 +806,5 @@ int main(void) {
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
       palClearPad(GPIOB, GPIOB_LED2);
     }
-    chThdSleepMilliseconds(1000);
   }
 }
