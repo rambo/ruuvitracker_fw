@@ -100,10 +100,12 @@ void power_enter_stop(void)
 {
     register_power_wakeup_callback(power_wakeup_callback);
 
+    //chSysLock();
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= (PWR_CR_LPDS | PWR_CR_CSBF | PWR_CR_CWUF);
     PWR->CR &= ~PWR_CR_PDDS;
     __WFI();
+    //chSysUnlock();
 }
 
 void power_enter_standby(void)

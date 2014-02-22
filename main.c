@@ -22,6 +22,7 @@
 #include "test.h"
 
 #include "shell.h"
+#include "drivers/debug.h"
 #include "chprintf.h"
 #include "power.h"
 #include "drivers/usb_serial.h"
@@ -168,6 +169,26 @@ static void cmd_http(BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
+static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Calling power_enter_stop()\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_stop();
+    chprintf(chp, "Back from power_enter_stop()\r\n");
+    chThdSleepMilliseconds(100);
+}
+
+static void cmd_standby(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Calling power_enter_standby()\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_standby();
+}
+
 
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
@@ -176,6 +197,8 @@ static const ShellCommand commands[] = {
     {"gps_test", cmd_gps},
     {"gsm", cmd_gsm},
     {"http", cmd_http},
+    {"stop", cmd_stop},
+    {"standby", cmd_standby},
     {NULL, NULL}
 };
 
@@ -212,6 +235,7 @@ static void Thread1(void *arg)
 /*
  * Application entry point.
  */
+static const EXTConfig extcfg; 
 int main(void)
 {
     Thread *shelltp = NULL;
@@ -232,7 +256,11 @@ int main(void)
     usb_serial_init();
 
     /* Initializes reset button PA0 */
+    /**
+     * This messes my button wakeup
     button_init();
+     */
+    extStart(&EXTD1, &extcfg);
 
     /*
      * Shell manager initialization.
