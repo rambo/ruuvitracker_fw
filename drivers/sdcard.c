@@ -2,6 +2,7 @@
 #include "chprintf.h"
 #include <stdio.h>
 #include <string.h>
+#include "drivers/debug.h"
 
 FATFS MMC_FS;
 MMCDriver MMCD1;
@@ -15,16 +16,20 @@ static MMCConfig mmc_cfg = { &SPID1, &ls_spicfg, &hs_spicfg };
 
 void sdcard_enable(void)
 {
+    D_ENTER();
     power_request(SDCARD_POWER_DOMAIN);
+    D_EXIT();
 }
 
 void sdcard_disable(void)
 {
+    D_ENTER();
     if (sdcard_fs_ready())
     {
         sdcard_unmount();
     }
     power_release(SDCARD_POWER_DOMAIN);
+    D_EXIT();
 }
 
 bool_t sdcard_fs_ready(void)
@@ -34,46 +39,54 @@ bool_t sdcard_fs_ready(void)
 
 FRESULT sdcard_unmount(void)
 {
+    D_ENTER();
     FRESULT err;
     err = f_mount(0, NULL);
     mmcDisconnect(&MMCD1);
     fs_ready = FALSE;
+    D_EXIT();
     return err;
 }
 
 FRESULT sdcard_mount(void)
 {
+    D_ENTER();
     FRESULT err;
     if(mmcConnect(&MMCD1))
     {
         // TODO: how to access the shell output stream ?
-        //chprintf((BaseSequentialStream *)&SDU2, "SD: Failed to connect to card\r\n");
+        _DEBUG("SD: Failed to connect to card\r\n");
+        D_EXIT();
         return FR_NOT_READY;
     }
     else
     {
-        //chprintf((BaseSequentialStream *)&SDU2, "SD: Connected to card\r\n");
+        _DEBUG("SD: Connected to card\r\n");
     }
     
     err = f_mount(0, &MMC_FS);
     if(err != FR_OK)
     {
-        //chprintf((BaseSequentialStream *)&SDU2, "SD: f_mount() failed %d\r\n", err);
+        _DEBUG("SD: f_mount() failed %d\r\n", err);
         mmcDisconnect(&MMCD1);
+        D_EXIT();
         return err;
     }
     else
     {
-        //chprintf((BaseSequentialStream *)&SDU2, "SD: File system mounted\r\n");
+        _DEBUG("SD: File system mounted\r\n");
     }
     fs_ready = TRUE;
+    D_EXIT();
     return err;
 }
 
 void sdcard_insert_handler(eventid_t id)
 {
     (void)id;
+    D_ENTER();
     sdcard_mount();
+    D_EXIT();
 }
 
 void sdcard_remove_handler(eventid_t id)
@@ -85,17 +98,21 @@ void sdcard_remove_handler(eventid_t id)
 
 void sdcard_mmcd_init(void)
 {
+    D_ENTER();
     mmcObjectInit(&MMCD1);
     mmcStart(&MMCD1, &mmc_cfg);
+    D_EXIT();
 }
 
 void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argv;
     (void)argc;
+    D_ENTER();
     if (sdcard_fs_ready())
     {
         chprintf(chp, "Already mounted\r\n");
+        D_EXIT();
         return;
     }
     chprintf(chp, "Mounting filesystem\r\n");
@@ -106,18 +123,22 @@ void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
     if (!sdcard_fs_ready())
     {
         chprintf(chp, "Mount failed\r\n");
+        D_EXIT();
         return;
     }
     chprintf(chp, "Card mounted\r\n");
+    D_EXIT();
 }
 
 void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argv;
     (void)argc;
+    D_ENTER();
     if (!sdcard_fs_ready())
     {
         chprintf(chp, "Already unmounted\r\n");
+        D_EXIT();
         return;
     }
     chprintf(chp, "Unmounting filesystem\r\n");
@@ -125,10 +146,12 @@ void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[])
     chThdSleepMilliseconds(100);
     sdcard_disable();
     chprintf(chp, "Done\r\n");
+    D_EXIT();
 }
 
 FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
 {
+    D_ENTER();
     FRESULT res;
     FILINFO fno;
     DIR dir;
@@ -164,21 +187,27 @@ FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
         }
     }
 
+    D_EXIT();
     return res;
 }
 
 void sdcard_cmd_ls(BaseSequentialStream *chp, int argc, char *argv[])
 {
+    D_ENTER();
     if (!sdcard_fs_ready())
     {
         chprintf(chp, "Not mounted\r\n");
+        D_EXIT();
         return;
     }
     if (argc < 1)
     {
         sdcard_scan_files(chp, "/");
-        return;
     }
-    sdcard_scan_files(chp, argv[0]);
+    else
+    {
+        sdcard_scan_files(chp, argv[0]);
+    }
+    D_EXIT();
 }
 
