@@ -41,10 +41,12 @@ FRESULT sdcard_unmount(void)
 {
     D_ENTER();
     FRESULT err;
+    chSysLock();
     err = f_mount(0, NULL);
     mmcDisconnect(&MMCD1);
     fs_ready = FALSE;
     D_EXIT();
+    chSysUnlock();
     return err;
 }
 
@@ -52,11 +54,12 @@ FRESULT sdcard_mount(void)
 {
     D_ENTER();
     FRESULT err;
+    chSysLock();
     if(mmcConnect(&MMCD1))
     {
-        // TODO: how to access the shell output stream ?
         _DEBUG("SD: Failed to connect to card\r\n");
         D_EXIT();
+        chSysUnlock();
         return FR_NOT_READY;
     }
     else
@@ -70,6 +73,7 @@ FRESULT sdcard_mount(void)
         _DEBUG("SD: f_mount() failed %d\r\n", err);
         mmcDisconnect(&MMCD1);
         D_EXIT();
+        chSysUnlock();
         return err;
     }
     else
@@ -78,6 +82,7 @@ FRESULT sdcard_mount(void)
     }
     fs_ready = TRUE;
     D_EXIT();
+    chSysUnlock();
     return err;
 }
 
