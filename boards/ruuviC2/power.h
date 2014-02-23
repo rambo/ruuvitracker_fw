@@ -55,4 +55,15 @@ void register_power_wakeup_callback(extcallback_t cb);
  */
 void power_wakeup_callback(EXTDriver *extp, expchannel_t channel);
 
+/**
+ * Shell command to enter STOP mode
+ */
+void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]);
+
+/**
+ * Shell command to enter STANDBY mode
+ */
+void cmd_standby(BaseSequentialStream *chp, int argc, char *argv[]);
+
+
 #endif /* POWER_H */

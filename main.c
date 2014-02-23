@@ -169,27 +169,6 @@ static void cmd_http(BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
-static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    chprintf(chp, "Calling power_enter_stop()\r\n");
-    chThdSleepMilliseconds(100);
-    power_enter_stop();
-    chprintf(chp, "Back from power_enter_stop()\r\n");
-    chThdSleepMilliseconds(100);
-}
-
-static void cmd_standby(BaseSequentialStream *chp, int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    chprintf(chp, "Calling power_enter_standby()\r\n");
-    chThdSleepMilliseconds(100);
-    power_enter_standby();
-}
-
-
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
     {"threads", cmd_threads},

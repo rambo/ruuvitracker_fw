@@ -1,6 +1,8 @@
 #include "ch.h"
 #include "hal.h"
 #include "power.h"
+#include "chprintf.h"
+
 
 /* Prototypes */
 static void enable_ldo2(void);
@@ -160,4 +162,24 @@ void power_wakeup_callback(EXTDriver *extp, expchannel_t channel)
     // TODO: Raise an event (so other interested parties can know about the event that woke us up), for now just suppress the warnings
     (void)extp;
     (void)channel;
+}
+
+void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Calling power_enter_stop()\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_stop();
+    chprintf(chp, "Back from power_enter_stop()\r\n");
+    chThdSleepMilliseconds(100);
+}
+
+void cmd_standby(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    chprintf(chp, "Calling power_enter_standby()\r\n");
+    chThdSleepMilliseconds(100);
+    power_enter_standby();
 }
