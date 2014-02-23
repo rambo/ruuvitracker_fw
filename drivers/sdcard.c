@@ -48,6 +48,23 @@ FRESULT sdcard_unmount(void)
     return err;
 }
 
+static WORKING_AREA(mount_thread_WA, 4096);
+static msg_t mount_thread(void *arg)
+{
+    (void)arg;
+    D_ENTER();
+    sdcard_mount();
+    D_EXIT();
+    return -1;
+}
+
+static void create_mount_thread()
+{
+    D_ENTER();
+    chThdCreateStatic(mount_thread_WA, sizeof(mount_thread_WA), NORMALPRIO, (tfunc_t)mount_thread, NULL);
+    D_EXIT();
+}
+
 FRESULT sdcard_mount(void)
 {
     D_ENTER();
@@ -85,7 +102,10 @@ void sdcard_insert_handler(eventid_t id)
 {
     (void)id;
     D_ENTER();
+    /**
+     * Actually we cannot call this from interrupt/lock zone, raise flag or something
     sdcard_mount();
+     */
     D_EXIT();
 }
 
@@ -93,7 +113,10 @@ void sdcard_remove_handler(eventid_t id)
 {
     (void)id;
     // TODO: Do we need to do something else to unmount the fs ?? (or is it too late)
+    /**
+     * Actually we cannot call this from interrupt/lock zone, raise flag or something
     sdcard_unmount();
+     */
 }
 
 void sdcard_mmcd_init(void)
@@ -119,7 +142,8 @@ void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
     sdcard_enable();
     // Wait for the regulator to stabilize
     chThdSleepMilliseconds(100);
-    sdcard_mount();
+    create_mount_thread();
+    chThdSleepMilliseconds(100);
     if (!sdcard_fs_ready())
     {
         chprintf(chp, "Mount failed\r\n");
