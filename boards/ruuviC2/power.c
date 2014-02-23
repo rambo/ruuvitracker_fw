@@ -148,6 +148,8 @@ void power_wakeup_callback(EXTDriver *extp, expchannel_t channel)
 {
     // TODO: Check if we actually were in STOP mode and only reinit clock in that case
     chSysLockFromIsr();
+    // Disable deepsleep
+    SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
     stm32_clock_init();
     chSysUnlockFromIsr();
     // TODO: Raise an event (so other interested parties can know about the event that woke us up), for now just suppress the warnings
