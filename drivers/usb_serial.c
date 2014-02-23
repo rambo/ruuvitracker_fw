@@ -320,6 +320,7 @@ void usb_serial_init(void)
     usbDisconnectBus(serusbcfg.usbp);
     palSetPadMode(GPIOA, GPIOA_USB_DP, PAL_MODE_OUTPUT_PUSHPULL);
     palClearPad(GPIOA, GPIOA_USB_DP);
+    // TODO: This sleep (and maybe the whole "force re-detect") should be disabled in production releases since it slows down recovery from standby mode unacceptably
     chThdSleepMilliseconds(1000);
     palSetPadMode(GPIOA, GPIOA_USB_DP, PAL_MODE_ALTERNATE(10));
 
