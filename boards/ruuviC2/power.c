@@ -100,6 +100,7 @@ void power_enter_stop(void)
 {
     register_power_wakeup_callback(power_wakeup_callback);
 
+    // PONDER: Should we use these locks ??
     //chSysLock();
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= (PWR_CR_LPDS | PWR_CR_CSBF | PWR_CR_CWUF);
@@ -117,6 +118,8 @@ void power_enter_standby(void)
     //chSysLock();
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= (PWR_CR_PDDS | PWR_CR_LPDS | PWR_CR_CSBF | PWR_CR_CWUF);
+    // Enable PA0 as wakeup pin
+    PWR->CSR |= PWR_CSR_EWUP;
     RTC->ISR &= ~(RTC_ISR_ALRBF | RTC_ISR_ALRAF | RTC_ISR_WUTF | RTC_ISR_TAMP1F | RTC_ISR_TSOVF | RTC_ISR_TSF);
     __WFI();
 }
@@ -150,6 +153,8 @@ void power_wakeup_callback(EXTDriver *extp, expchannel_t channel)
     chSysLockFromIsr();
     // Disable deepsleep
     SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+    // Disable wakeup and return the PA0 to normal IO usage
+    PWR->CSR &= ~PWR_CSR_EWUP;
     stm32_clock_init();
     chSysUnlockFromIsr();
     // TODO: Raise an event (so other interested parties can know about the event that woke us up), for now just suppress the warnings
