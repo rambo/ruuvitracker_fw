@@ -53,6 +53,26 @@ FRESULT sdcard_mount(void);
 FRESULT sdcard_unmount(void);
 
 /**
+ * Shell command to (enable sdcard and) mount filesystem
+ */
+void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[]);
+
+/**
+ * Shell command ton unmount filesystem (and disable sdcard)
+ */
+void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[]);
+
+/** 
+ * Shell command to list files on card
+ */
+void sdcard_cmd_ls(BaseSequentialStream *chp, int argc, char *argv[]);
+
+/**
+ * Helper used by cmd_ls
+ */
+FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path);
+
+/**
  * These callbacks are called by the MMC driver
  *
  * They handle mounting/unmounting the filesystem
