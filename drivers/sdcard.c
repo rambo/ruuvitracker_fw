@@ -93,6 +93,11 @@ void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argv;
     (void)argc;
+    if (sdcard_fs_ready())
+    {
+        chprintf(chp, "Already mounted\r\n");
+        return;
+    }
     chprintf(chp, "Mounting filesystem\r\n");
     sdcard_enable();
     // Wait for the regulator to stabilize
@@ -110,6 +115,11 @@ void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argv;
     (void)argc;
+    if (!sdcard_fs_ready())
+    {
+        chprintf(chp, "Already unmounted\r\n");
+        return;
+    }
     chprintf(chp, "Unmounting filesystem\r\n");
     sdcard_unmount();
     chThdSleepMilliseconds(100);

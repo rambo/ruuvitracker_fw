@@ -25,6 +25,7 @@
 #include "drivers/debug.h"
 #include "chprintf.h"
 #include "power.h"
+#include "drivers/sdcard.h"
 #include "drivers/usb_serial.h"
 #include "drivers/gps.h"
 #include "drivers/gsm.h"
@@ -184,6 +185,9 @@ static const ShellCommand commands[] = {
     {"http", cmd_http},
     {"stop", cmd_stop},
     {"standby", cmd_standby},
+    {"mount", sdcard_cmd_mount},
+    {"unmount", sdcard_cmd_unmount},
+    {"ls", sdcard_cmd_ls},
     {NULL, NULL}
 };
 
@@ -246,6 +250,11 @@ int main(void)
     button_init();
      */
     extStart(&EXTD1, &extcfg);
+    
+    /**
+     * Init SD/MMC subsystem
+     */
+    sdcard_mmcd_init();
 
     /*
      * Shell manager initialization.
