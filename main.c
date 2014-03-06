@@ -27,13 +27,22 @@
 #include "chprintf.h"
 
 #include "power.h"
-#include "drivers/sdcard.h"
+//#include "drivers/sdcard.h"
 #include "drivers/usb_serial.h"
 #include "drivers/gps.h"
 #include "drivers/gsm.h"
 #include "drivers/http.h"
 #include "drivers/reset_button.h"
 #include "drivers/rtchelpers.h"
+
+/* I2C interface #2 */
+static const I2CConfig i2cfg1 = {
+    OPMODE_I2C,
+    400000,
+    FAST_DUTY_CYCLE_2,
+};
+
+static i2cflags_t i2c_errors = 0;
 
 
 /*===========================================================================*/
@@ -180,6 +189,37 @@ static void cmd_http(BaseSequentialStream *chp, int argc, char *argv[])
 }
 
 
+static void cmd_i2cscan(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    msg_t status = RDY_OK;
+    //uint8_t txbuff[1];
+    uint8_t rxbuff[1];
+    uint8_t addr;
+    chprintf(chp, "Starting scan\r\n");
+    chThdSleepMilliseconds(200);
+    for (addr=0; addr < 128; addr++)
+    {
+        i2cAcquireBus(&I2CD1);
+        // TODO: how to check just for address ACK ?? receiving 0 bytes seems to hang us.
+        status = i2cMasterReceiveTimeout(&I2CD1, addr, rxbuff, 1, 1000);
+        if (status == RDY_OK)
+        {
+            chprintf(chp, "FOUND device at 0x%.2x\r\n", addr);
+        }
+        else
+        {
+            i2c_errors = i2cGetErrors(&I2CD1);
+            chprintf(chp, "no device at 0x%.2x, errors: 0x%.2x\r\n", addr, i2c_errors);
+        }
+        i2cReleaseBus(&I2CD1);
+        chThdSleepMilliseconds(100);
+    }
+    chprintf(chp, "scan done\r\n");
+}
+
+
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
     {"threads", cmd_threads},
@@ -194,9 +234,12 @@ static const ShellCommand commands[] = {
     {"alarm", cmd_alarm},
     {"wakeup", cmd_wakeup},
 
+/*
     {"mount", sdcard_cmd_mount},
     {"unmount", sdcard_cmd_unmount},
     {"ls", sdcard_cmd_ls},
+*/
+    {"scan", cmd_i2cscan},
     {NULL, NULL}
 };
 
@@ -248,6 +291,8 @@ int main(void)
     halInit();
     chSysInit();
 
+    i2cStart(&I2CD1, &i2cfg1);
+
     /*
      * Initializes a serial-over-USB CDC driver.
      */
@@ -263,7 +308,7 @@ int main(void)
     /**
      * Init SD/MMC subsystem
      */
-    sdcard_mmcd_init();
+    //sdcard_mmcd_init();
 
     /*
      * Shell manager initialization.
