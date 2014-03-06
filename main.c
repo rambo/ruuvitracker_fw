@@ -201,7 +201,7 @@ static void cmd_i2cscan(BaseSequentialStream *chp, int argc, char *argv[])
     chThdSleepMilliseconds(200);
     for (addr=0; addr < 128; addr++)
     {
-        i2cAcquireBus(&I2CD1);
+        //i2cAcquireBus(&I2CD1);
         // TODO: how to check just for address ACK ?? receiving 0 bytes seems to hang us.
         status = i2cMasterReceiveTimeout(&I2CD1, addr, rxbuff, 1, 1000);
         if (status == RDY_OK)
@@ -213,7 +213,7 @@ static void cmd_i2cscan(BaseSequentialStream *chp, int argc, char *argv[])
             i2c_errors = i2cGetErrors(&I2CD1);
             chprintf(chp, "no device at 0x%.2x, errors: 0x%.2x\r\n", addr, i2c_errors);
         }
-        i2cReleaseBus(&I2CD1);
+        //i2cReleaseBus(&I2CD1);
         chThdSleepMilliseconds(100);
     }
     chprintf(chp, "scan done\r\n");
