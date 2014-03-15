@@ -1,4 +1,6 @@
 #include "platform_i2c.h"
+// TODO: This (I guess) requires the STM standard libraries to work, how to include them ??
+
 
 /* I2C Functions */
 u32 platform_i2c_setup(u32 speed )
