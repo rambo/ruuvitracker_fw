@@ -71,12 +71,15 @@ static void gps_power_on(void)
 {
     power_request(LDO3);
     power_request(LDO2);
+    power_request(GPS_VBACKUP);
 }
 
 static void gps_power_off(void)
 {
     power_release(LDO3);
     power_release(LDO2);
+    // Intentionally leave backup power on
+    // TODO: Make a separate function (or pass an argument) to turn everything off
 }
 
 
