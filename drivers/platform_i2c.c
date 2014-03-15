@@ -1,7 +1,8 @@
 #include "platform_i2c.h"
 // The STM libraries, the next good question is how to actually get them...
 // The alternative is to rewrite that low-level functionality here
-#include <stm32f4xx.h>
+#include <stm32f4xx_gpio.h>
+#include <stm32f4xx_i2c.h>
 
 
 /* I2C Functions */
@@ -49,6 +50,12 @@ u32 platform_i2c_setup(u32 speed )
 	I2C_Cmd(I2C1, ENABLE);
 
 	return speed;
+}
+
+u32 platform_i2c_teardown()
+{
+	I2C_Cmd(I2C1, DISABLE);
+	I2C_DeInit(I2C1);
 }
 
 

@@ -18,6 +18,7 @@ typedef enum rt_error
 #define RT_TIMEOUT_CHECK(ms) if ((systick_get_raw() - RT_TIMEOUT_STARTED) > ms) { _DEBUG("timeout! systick_get_raw=%d RT_TIMEOUT_STARTED=%d, ms=%d\n", systick_get_raw(), RT_TIMEOUT_STARTED, ms); D_EXIT(); return RT_ERR_TIMEOUT; }
 
 u32 platform_i2c_setup(u32 speed );
+u32 platform_i2c_teardown();
 rt_error platform_i2c_send_start();
 rt_error platform_i2c_send_stop();
 rt_error platform_i2c_send_address(u16 address, int direction );
