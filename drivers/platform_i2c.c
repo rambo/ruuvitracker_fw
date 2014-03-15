@@ -1,5 +1,53 @@
 #include "platform_i2c.h"
 
+/* I2C Functions */
+u32 platform_i2c_setup( unsigned id, u32 speed )
+{
+	GPIO_InitTypeDef GPIO_InitStruct;
+	I2C_InitTypeDef I2C_InitStruct;
+
+	// enable APB1 peripheral clock for I2C1
+	RCC_APB1PeriphClockCmd(i2c_rcc[id], ENABLE);
+	// enable clock for SCL and SDA pins
+	RCC_AHB1PeriphClockCmd(i2c_port_rcc[id], ENABLE);
+
+	I2C_DeInit(i2c[id]);
+
+	/* setup SCL and SDA pins
+	 * You can connect I2C1 to two different
+	 * pairs of pins:
+	 * 1. SCL on PB6 and SDA on PB7
+	 * 2. SCL on PB8 and SDA on PB9
+	 */
+	GPIO_InitStruct.GPIO_Pin = i2c_scl_pin[id] | i2c_sda_pin[id]; // pins to use
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;		 // set pins to alternate function
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;		// set GPIO speed
+	GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;		// set output to open drain --> the line has to be only pulled low, not driven high
+	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;		// enable pull up resistors
+	GPIO_Init(i2c_port[id], &GPIO_InitStruct);			// init GPIO
+
+	// Connect I2C1 pins to AF
+	GPIO_PinAFConfig(i2c_port[id], i2c_scl_pinsource[id], i2c_af[id]);	// SCL
+	GPIO_PinAFConfig(i2c_port[id], i2c_sda_pinsource[id], i2c_af[id]); // SDA
+
+	// configure I2C1
+	I2C_StructInit(&I2C_InitStruct);
+	I2C_InitStruct.I2C_ClockSpeed = speed; 		//set speed (100kHz or 400kHz)
+	I2C_InitStruct.I2C_Mode = I2C_Mode_I2C;			// I2C mode
+	I2C_InitStruct.I2C_DutyCycle = I2C_DutyCycle_2;	// 50% duty cycle --> standard
+	I2C_InitStruct.I2C_OwnAddress1 = 0x00;			// own address, not relevant in master mode
+	I2C_InitStruct.I2C_Ack = I2C_Ack_Disable;		// disable acknowledge when reading (can be changed later on)
+	I2C_InitStruct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit; // set address length to 7 bit addresses
+	I2C_Init(i2c[id], &I2C_InitStruct);				// init I2C1
+	I2C_StretchClockCmd(i2c[id], ENABLE);		// Make sure clock streching is enabled
+
+	// enable I2C1
+	I2C_Cmd(i2c[id], ENABLE);
+
+	return speed;
+}
+
+
 rt_error platform_i2c_send_start( unsigned id )
 {
 	//D_ENTER();
