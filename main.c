@@ -196,28 +196,92 @@ static void cmd_i2cscan(BaseSequentialStream *chp, int argc, char *argv[])
     msg_t status = RDY_OK;
     //uint8_t txbuff[1];
     uint8_t rxbuff[1];
+    uint8_t txbuff[1];
     uint8_t addr;
     chprintf(chp, "Starting scan\r\n");
     chThdSleepMilliseconds(200);
-    for (addr=0; addr < 128; addr++)
+    i2cAcquireBus(&I2CD1);
+    i2cStart(&I2CD1, &i2cfg1);
+    // Starting from 0x0 will hang (I guess the DMA thingy does not like all-call addresses...)
+    for (addr=1; addr < 128; addr++)
     {
-        //i2cAcquireBus(&I2CD1);
-        // TODO: how to check just for address ACK ?? receiving 0 bytes seems to hang us.
-        status = i2cMasterReceiveTimeout(&I2CD1, addr, rxbuff, 1, 1000);
-        if (status == RDY_OK)
-        {
-            chprintf(chp, "FOUND device at 0x%.2x\r\n", addr);
-        }
-        else
-        {
-            i2c_errors = i2cGetErrors(&I2CD1);
-            chprintf(chp, "no device at 0x%.2x, errors: 0x%.2x\r\n", addr, i2c_errors);
-        }
-        //i2cReleaseBus(&I2CD1);
+        chprintf(chp, "Checking 0x%02X\r\n", addr);
         chThdSleepMilliseconds(100);
+        //status = i2cMasterReceiveTimeout(&I2CD1, addr, rxbuff, 1, MS2ST(500));
+        txbuff[0] = 0; 
+        status = i2cMasterTransmitTimeout(&I2CD1, addr, txbuff, 1, rxbuff, 0, MS2ST(500));
+        switch(status)
+        {
+            case RDY_OK:
+                chprintf(chp, "FOUND device at 0x%02X\r\n", addr);
+                break;
+            case RDY_RESET:
+                i2c_errors = i2cGetErrors(&I2CD1);
+                // error values: http://chibios.sourceforge.net/docs/hal_stm32f4xx_rm/group___i2_c.html#ga653f9c593af20d15fdbf893e4c117d78
+                chprintf(chp, "no device at 0x%02X, errors: 0x%02X I2C1->SR1=0x%04X\r\n", addr, i2c_errors, I2C1->SR1);
+                // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
+                i2cStop(&I2CD1);
+                I2C1->CR1 |= I2C_CR1_SWRST;
+                i2cStart(&I2CD1, &i2cfg1);
+                break;
+            case RDY_TIMEOUT:
+                chprintf(chp, "no device at 0x%02X, TIMEOUT\r\n", addr, i2c_errors);
+                // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
+                i2cStop(&I2CD1);
+                I2C1->CR1 |= I2C_CR1_SWRST;
+                i2cStart(&I2CD1, &i2cfg1);
+                break;
+        }
     }
     chprintf(chp, "scan done\r\n");
+    i2cStop(&I2CD1);
+    i2cReleaseBus(&I2CD1);
 }
+
+static void cmd_accread(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
+    msg_t status = RDY_OK;
+    //uint8_t txbuff[1];
+    uint8_t rxbuff[6];
+    uint8_t txbuff[1];
+    txbuff[0] = 0x0; // register
+    uint8_t addr = 0x1d; // 7-bit address
+    i2cAcquireBus(&I2CD1);
+    i2cStart(&I2CD1, &i2cfg1);
+    status = i2cMasterTransmitTimeout(&I2CD1, addr, txbuff, 1, rxbuff, 6, MS2ST(500));
+    switch(status)
+    {
+        case RDY_OK:
+        {
+            uint8_t i;
+            for (i=0; i<6; i++)
+            {
+                chprintf(chp, "Device 0x%02X reg 0x%02X value 0x%02X\r\n", addr, txbuff[0]+i, rxbuff[i]);
+            }
+            break;
+        }
+        case RDY_RESET:
+            i2c_errors = i2cGetErrors(&I2CD1);
+            chprintf(chp, "error for device at 0x%02X, errors: 0x%02X I2C1->SR1=0x%04X\r\n", addr, i2c_errors, I2C1->SR1);
+            // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
+            i2cStop(&I2CD1);
+            I2C1->CR1 |= I2C_CR1_SWRST;
+            i2cStart(&I2CD1, &i2cfg1);
+            break;
+        case RDY_TIMEOUT:
+            chprintf(chp, "TIMEOUT for device at 0x%02X\r\n", addr, i2c_errors);
+            // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
+            i2cStop(&I2CD1);
+            I2C1->CR1 |= I2C_CR1_SWRST;
+            i2cStart(&I2CD1, &i2cfg1);
+            break;
+    }
+    i2cStop(&I2CD1);
+    i2cReleaseBus(&I2CD1);
+}    
+
 
 
 static const ShellCommand commands[] = {
@@ -240,6 +304,7 @@ static const ShellCommand commands[] = {
     {"ls", sdcard_cmd_ls},
 */
     {"scan", cmd_i2cscan},
+    {"acc", cmd_accread},
     {NULL, NULL}
 };
 
@@ -291,7 +356,6 @@ int main(void)
     halInit();
     chSysInit();
 
-    i2cStart(&I2CD1, &i2cfg1);
 
     /*
      * Initializes a serial-over-USB CDC driver.
