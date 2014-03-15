@@ -1,5 +1,7 @@
 #include "platform_i2c.h"
-// TODO: This (I guess) requires the STM standard libraries to work, how to include them ??
+// The STM libraries, the next good question is how to actually get them...
+// The alternative is to rewrite that low-level functionality here
+#include <stm32f4xx.h>
 
 
 /* I2C Functions */
