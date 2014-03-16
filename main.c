@@ -26,7 +26,7 @@
 #include "chprintf.h"
 
 #include "power.h"
-//#include "drivers/sdcard.h"
+#include "drivers/sdcard.h"
 #include "drivers/usb_serial.h"
 #include "drivers/gps.h"
 #include "drivers/gsm.h"
@@ -297,11 +297,11 @@ static const ShellCommand commands[] = {
     {"alarm", cmd_alarm},
     {"wakeup", cmd_wakeup},
 
-/*
+    {"sdenable", sdcard_cmd_enable},
     {"mount", sdcard_cmd_mount},
     {"unmount", sdcard_cmd_unmount},
     {"ls", sdcard_cmd_ls},
-*/
+
     {"scan", cmd_i2cscan},
     {"acc", cmd_accread},
     {NULL, NULL}
@@ -368,11 +368,6 @@ int main(void)
      */
     extStart(&EXTD1, &extcfg);
     
-    /**
-     * Init SD/MMC subsystem
-     */
-    //sdcard_mmcd_init();
-
     /*
      * Shell manager initialization.
      */

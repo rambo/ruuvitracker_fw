@@ -52,6 +52,12 @@ FRESULT sdcard_mount(void);
  */
 FRESULT sdcard_unmount(void);
 
+
+/**
+ * Shell command enable sdcard regulator
+ */
+void sdcard_cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]);
+
 /**
  * Shell command to (enable sdcard and) mount filesystem
  */

@@ -18,6 +18,9 @@ void sdcard_enable(void)
 {
     D_ENTER();
     power_request(SDCARD_POWER_DOMAIN);
+    // Wait for the regulator to stabilize
+    chThdSleepMilliseconds(100);
+    sdcard_mmcd_init();
     D_EXIT();
 }
 
@@ -52,9 +55,16 @@ FRESULT sdcard_mount(void)
 {
     D_ENTER();
     FRESULT err;
+    if (!mmc_lld_is_card_inserted(&MMCD1))
+    {
+        _DEBUG("SD: No card detected!\r\n");
+        D_EXIT();
+        return FR_NOT_READY;
+    }
+    _DEBUG("SD: mmcConnect\r\n");
+    chThdSleepMilliseconds(100);
     if(mmcConnect(&MMCD1))
     {
-        // TODO: how to access the shell output stream ?
         _DEBUG("SD: Failed to connect to card\r\n");
         D_EXIT();
         return FR_NOT_READY;
@@ -64,6 +74,8 @@ FRESULT sdcard_mount(void)
         _DEBUG("SD: Connected to card\r\n");
     }
     
+    _DEBUG("SD: f_mount\r\n");
+    chThdSleepMilliseconds(100);
     err = f_mount(0, &MMC_FS);
     if(err != FR_OK)
     {
@@ -99,9 +111,27 @@ void sdcard_remove_handler(eventid_t id)
 void sdcard_mmcd_init(void)
 {
     D_ENTER();
+    _DEBUG("SD: mmcObjectInit\r\n");
     mmcObjectInit(&MMCD1);
+    _DEBUG("SD: mmcStart\r\n");
     mmcStart(&MMCD1, &mmc_cfg);
+    _DEBUG("SD: Done\r\n");
     D_EXIT();
+}
+
+void sdcard_cmd_enable(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)argv;
+    (void)argc;
+    D_ENTER();
+    if (sdcard_fs_ready())
+    {
+        chprintf(chp, "Already mounted (and thus must be enabled)\r\n");
+        D_EXIT();
+        return;
+    }
+    chprintf(chp, "Enabling card regulator\r\n");
+    sdcard_enable();
 }
 
 void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
@@ -115,10 +145,9 @@ void sdcard_cmd_mount(BaseSequentialStream *chp, int argc, char *argv[])
         D_EXIT();
         return;
     }
-    chprintf(chp, "Mounting filesystem\r\n");
+    chprintf(chp, "Enabling card regulator\r\n");
     sdcard_enable();
-    // Wait for the regulator to stabilize
-    chThdSleepMilliseconds(100);
+    chprintf(chp, "Mounting filesystem\r\n");
     sdcard_mount();
     if (!sdcard_fs_ready())
     {
@@ -144,6 +173,7 @@ void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[])
     chprintf(chp, "Unmounting filesystem\r\n");
     sdcard_unmount();
     chThdSleepMilliseconds(100);
+    chprintf(chp, "Disabling card regulator\r\n");
     sdcard_disable();
     chprintf(chp, "Done\r\n");
     D_EXIT();
