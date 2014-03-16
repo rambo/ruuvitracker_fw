@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 #include "ch.h"
 #include "hal.h"
 #include "test.h"
@@ -35,6 +34,7 @@
 #include "drivers/reset_button.h"
 #include "drivers/rtchelpers.h"
 
+
 /* I2C interface #2 */
 static const I2CConfig i2cfg1 = {
     OPMODE_I2C,
@@ -43,7 +43,6 @@ static const I2CConfig i2cfg1 = {
 };
 
 static i2cflags_t i2c_errors = 0;
-
 
 /*===========================================================================*/
 /* Command line related.                                                     */
