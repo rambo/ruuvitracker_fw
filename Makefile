@@ -99,6 +99,7 @@ CSRC = $(PORTSRC) \
        drivers/sha1.c \
        drivers/reset_button.c \
        drivers/rtchelpers.c \
+#       drivers/platform_i2c.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
