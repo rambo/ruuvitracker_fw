@@ -182,10 +182,17 @@ void sdcard_cmd_unmount(BaseSequentialStream *chp, int argc, char *argv[])
 FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
 {
     D_ENTER();
+    chprintf(chp, "path=%s\r\n", path);
+    chThdSleepMilliseconds(100);
     FRESULT res;
     FILINFO fno;
     DIR dir;
-    int i;
+    char new_dir[30]; // This ought to be enough
+    bool path_is_root = 0;
+    if (strncmp("/", path, 2) == 0)
+    {
+        path_is_root = 1;
+    }
     char *fn;   /* This function is assuming non-Unicode cfg. */
 #if _USE_LFN
     static char lfn[_MAX_LFN + 1];
@@ -193,10 +200,8 @@ FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
     fno.lfsize = sizeof(lfn);
 #endif
 
-
     res = f_opendir(&dir, path);                       /* Open the directory */
     if (res == FR_OK) {
-        i = strlen(path);
         for (;;) {
             res = f_readdir(&dir, &fno);                   /* Read a directory item */
             if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
@@ -206,13 +211,31 @@ FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
 #else
             fn = fno.fname;
 #endif
-            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                sprintf(&path[i], "/%s", fn);
-                res = sdcard_scan_files(chp, path);
-                if (res != FR_OK) break;
-                path[i] = 0;
-            } else {                                       /* It is a file. */
+            if (!path_is_root)
+            {
                 chprintf(chp, "%s/%s\n", path, fn);
+            }
+            else
+            {
+                chprintf(chp, "%s\n",fn);
+            }
+            chThdSleepMilliseconds(100);
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                chprintf(chp, "^^^ is dir\n");
+                chThdSleepMilliseconds(100);
+                // If we're listing root, use the dir without path separator
+                if (!path_is_root)
+                {
+                    sprintf(new_dir, "%s/%s", path, fn);
+                }
+                else
+                {
+                    sprintf(new_dir, "%s", fn);
+                }
+                res = sdcard_scan_files(chp, new_dir);
+                if (res != FR_OK) break;
+            } else {                                       /* It is a file. */
+                //chprintf(chp, "%s/%s\n", path, fn);
             }
         }
     }
