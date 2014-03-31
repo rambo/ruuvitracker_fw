@@ -90,7 +90,6 @@ CSRC = $(PORTSRC) \
        drivers/sha1.c \
        drivers/reset_button.c \
        drivers/rtchelpers.c \
-       drivers/sdcard.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
