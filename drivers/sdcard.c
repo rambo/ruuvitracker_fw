@@ -211,6 +211,7 @@ FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
 #else
             fn = fno.fname;
 #endif
+            // TODO: Size directory vs file ? other info ??
             if (!path_is_root)
             {
                 chprintf(chp, "%s/%s\n", path, fn);
@@ -220,6 +221,7 @@ FRESULT sdcard_scan_files(BaseSequentialStream *chp, char *path)
                 chprintf(chp, "%s\n",fn);
             }
             chThdSleepMilliseconds(100);
+            // TODO: Do not recurse
             if (fno.fattrib & AM_DIR) {                    /* It is a directory */
                 chprintf(chp, "^^^ is dir\n");
                 chThdSleepMilliseconds(100);
