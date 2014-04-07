@@ -120,6 +120,14 @@ static Message urc_messages[] = {
     { "\\+COPS:",        .func = parse_network },
     { "\\+SAPBR:",       .func = parse_sapbr },
     { "\\+PDP: DEACT",   .func = pdp_off },
+    /* TODO:
+    +CREG // cell and location IDs, needed for SUPL support, also we need to on init set AT+CREG=2
+    +CLTS // network time, sync STM32 RTC to this when available
+    +CBTE // Battery temp (though this can and probably should be just a request/response command)
+    +CBC // Battery voltage (though this can and probably should be just a request/response command)
+    +CNETLIGHT // Netlight status (not URC, just a command, but implement it, LEDs precious suck power...)
+    +CMTE // abnormal temperature (probably should cool down for a while)
+    */
     /* Return codes */
     { "OK",           .func = handle_ok },
     { "FAIL",         .func = handle_fail },
@@ -201,6 +209,11 @@ static void gsm_state_parser(void)
             m->func(buf);
         }
     }
+
+    // TODO: make the buffer available globally and send a signal indicating we have new URC ??
+    // This would allow threads to set enable URC for various parameters without messing 
+    // with the URC parser and state machine.
+
 }
 
 static void pdp_off(char *line)
@@ -545,6 +558,7 @@ static void gsm_enable_hw_flow()
         gsm.flags |= HW_FLOW_ENABLED;
         gsm_cmd("ATE0"); 		/* Disable ECHO */
         gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
+        // TODO: Is this a good idea ? what are the major risks ??
     }
     _DEBUG("%s","HW flow enabled\r\n");
     D_EXIT();
@@ -664,6 +678,10 @@ static void gsm_thread(void *arg)
 
 /* ============ GENERAL ========================== */
 
+// TODO: separate the thread from power control
+// TODO: commands to put the module to off state (and then shutdown the the parser thread and serial peripheral) and cut-off too
+// In fact probably the power state function should handle all this...
+
 void gsm_start(void)
 {
     chBSemInit(&gsm.waiting_reply, TRUE);
@@ -673,3 +691,4 @@ void gsm_start(void)
     worker = chThdCreateStatic(waGSM, sizeof(waGSM), NORMALPRIO, (tfunc_t)gsm_thread, NULL);
     gsm_set_power_state(POWER_ON);
 }
+

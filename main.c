@@ -160,6 +160,7 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
         gsm_start();
     } else if (0 == strcmp(argv[0], "cmd")) {
         gsm_cmd(argv[1]);
+        
     }
 }
 
