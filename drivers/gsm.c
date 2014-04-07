@@ -121,8 +121,8 @@ static Message urc_messages[] = {
     { "\\+SAPBR:",       .func = parse_sapbr },
     { "\\+PDP: DEACT",   .func = pdp_off },
     /* TODO:
-    +CREG // cell and location IDs, needed for SUPL support, also we need to on init set AT+CREG=2
-    +CLTS // network time, sync STM32 RTC to this when available
+    +CREG // cell and location IDs, these are going to be handy if we try to do something like SUPL
+    *PSUTTZ // network time, sync STM32 RTC to this when available (probably need to set AT+CLTS=1)
     +CBTE // Battery temp (though this can and probably should be just a request/response command)
     +CBC // Battery voltage (though this can and probably should be just a request/response command)
     +CNETLIGHT // Netlight status (not URC, just a command, but implement it, LEDs precious suck power...)
@@ -557,8 +557,14 @@ static void gsm_enable_hw_flow()
         gsm_set_serial_flow_control(1);
         gsm.flags |= HW_FLOW_ENABLED;
         gsm_cmd("ATE0"); 		/* Disable ECHO */
-        gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
         // TODO: Is this a good idea ? what are the major risks ??
+        gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
+        // TODO: Do we have a better place for this command ??
+        gsm_cmd("AT+CREG=2");      /* Enable cell-location URC */
+    }
+    else
+    {
+        // TODO: report error ? choke and die ?? Try again ??
     }
     _DEBUG("%s","HW flow enabled\r\n");
     D_EXIT();
