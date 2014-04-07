@@ -557,7 +557,7 @@ static void gsm_enable_hw_flow()
         gsm_set_serial_flow_control(1);
         gsm.flags |= HW_FLOW_ENABLED;
         gsm_cmd("ATE0"); 		/* Disable ECHO */
-        // TODO: Is this a good idea ? what are the major risks ??
+        // TODO: set this to 1 and control DTR whenever *we* want to talk to the module (the module can and will talk back to us for important things anyway, and we can periodically check if it wants to talk to us)
         gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
         // TODO: Do we have a better place for this command ??
         gsm_cmd("AT+CREG=2");      /* Enable cell-location URC */
@@ -574,6 +574,8 @@ static void gsm_enable_hw_flow()
 void gsm_set_power_state(enum Power_mode mode)
 {
     int status_pin = palReadPad(STATUS_PORT, STATUS_PIN);
+
+    // TODO: Add minimum functionality and flight-mode states (minimum functionality is usefull for checking battery voltage for example...)
 
     switch(mode) {
     case POWER_ON:
