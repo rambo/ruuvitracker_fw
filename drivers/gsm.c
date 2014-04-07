@@ -14,7 +14,6 @@
 #include "power.h"
 #include "debug.h"
 
-
 /* ============ DEFINE GPIO PINS HERE =========*/
 #define STATUS_PIN  GPIOC_GSM_STATUS
 #define STATUS_PORT GPIOC
@@ -557,7 +556,9 @@ static void gsm_enable_hw_flow()
         gsm_set_serial_flow_control(1);
         gsm.flags |= HW_FLOW_ENABLED;
         gsm_cmd("ATE0"); 		/* Disable ECHO */
-        // TODO: set this to 1 and control DTR whenever *we* want to talk to the module (the module can and will talk back to us for important things anyway, and we can periodically check if it wants to talk to us)
+        // TODO: set this to 1 and control DTR whenever *we* want to talk to the module 
+        // (the module can and will talk back to us for important things anyway, and we get RI as well, 
+        // and we could just periodically check if there was something less important the module has to say)
         gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
         // TODO: Do we have a better place for this command ??
         gsm_cmd("AT+CREG=2");      /* Enable cell-location URC */
