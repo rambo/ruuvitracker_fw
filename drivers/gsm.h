@@ -11,6 +11,7 @@
 enum Power_mode { POWER_OFF=0, POWER_ON, CUT_OFF };
 enum Reply { AT_OK=0, AT_FAIL, AT_ERROR, AT_TIMEOUT };
 
+
 /* C-API */
 int gsm_cmd(const char *cmd);                                            /* Send AT command to modem. Returns AT_OK, AT_FAIL or AT_ERROR */
 int gsm_cmd_fmt(const char *fmt, ...);                                   /* Send formatted string command to modem. */
@@ -25,6 +26,8 @@ int gsm_read_raw(char *buf, int max_len);                                /* Read
 int gsm_gprs_enable(void);                                               /* Enable GPRS data */
 int gsm_gprs_disable(void);                                              /* Disable GPRS data */
 void gsm_start(void);                                                    /* Start the modem */
+int gsm_get_state(void);                                                 /* Read state value */
+
 
 /* Internals */
 void gsm_set_power_state(enum Power_mode mode);

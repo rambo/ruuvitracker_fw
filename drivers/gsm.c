@@ -41,7 +41,6 @@ enum State {
     STATE_ERROR,
 };
 
-
 enum CFUN {
     CFUN_0 = 0,
     CFUN_1 = 1,
@@ -75,6 +74,10 @@ static struct gsm_modem gsm = {		/* Initial status */
     .state = STATE_OFF,
 };
 
+int gsm_get_state(void)
+{
+    return gsm.state;
+}
 
 /* Handler functions for AT replies*/
 static void handle_ok(char *line);

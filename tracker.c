@@ -1,3 +1,8 @@
+#define GPRS_APN "internet.saunalahti"
+#define SHARED_SECRET "sepeto"
+#define SIM_PIN 1234
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -173,7 +178,7 @@ static void send_event(struct gps_data_t *gps)
 	  js_replace("session_code", strdup(buf));
 	  first_time = 0;
      }
-     calculate_mac("sepeto");
+     calculate_mac(SHARED_SECRET);
      json = js_tostr();
 
      _DEBUG("Sending JSON event:\r\n%s\r\nlen = %d\r\n", json, strlen(json));
@@ -204,12 +209,29 @@ static void tracker_th(void *args)
 
 int main(void)
 {
+     int gsmstate=0;
+     int gsmreply=0;
      halInit();
      chSysInit();
      usb_serial_init();
 	 button_init();
      gsm_start();
-     gsm_set_apn("internet.saunalahti");
+     // Wait for PIN prompt if any
+     while (gsmstate < 3) // STATE_ASK_PIN
+     {
+        gsmstate = gsm_get_state();
+        chThdSleepMilliseconds(100);
+     }
+     if (gsmstate == 3) // STATE_ASK_PIN
+     {
+        // Try to enter the pin once
+        gsmreply = gsm_cmd("AT+CPIN=SIM_PIN");
+        if (gsmreply != AT_OK)
+        {
+            _DEBUG("PIN unlock FAILED\r\n");
+        }
+     }
+     gsm_set_apn(GPRS_APN);
      gps_start();
      chThdCreateStatic(myWA, sizeof(myWA),
                           NORMALPRIO, (tfunc_t)tracker_th, NULL);
