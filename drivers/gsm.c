@@ -4,6 +4,30 @@
  * @author: Seppo Takalo
  */
 
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Seppo Takalo
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -342,6 +366,17 @@ void gsm_toggle_power_pin(void)
     palSetPad(POWER_PORT, POWER_PIN);
 }
 
+static void sleep_enable(void)
+{
+    palSetPad(DTR_PORT, DTR_PIN);
+}
+
+static void sleep_disable(void)
+{
+    palClearPad(DTR_PORT, DTR_PIN);
+    chThdSleepMilliseconds(50);
+}
+
 void gsm_uart_write(const char *str)
 {
     while(*str)
@@ -358,6 +393,7 @@ int gsm_cmd(const char *cmd)
     int retry;
 
     _DEBUG("%s\r\n", cmd);
+    sleep_disable();
 
     /* Reset semaphore so we are sure that next time it is signalled
      * it is reply to this command */
@@ -375,6 +411,7 @@ int gsm_cmd(const char *cmd)
     if (gsm.reply != AT_OK)
         _DEBUG("'%s' failed (%d)\r\n", cmd, gsm.reply);
 
+    sleep_enable();
     if (retry == 3) {             /* Modem not responding */
         _DEBUG("%s", "Modem not responding!\r\n");
         return AT_TIMEOUT;
@@ -406,6 +443,7 @@ int gsm_request_serial_port(void)
     }
     chIQResetI(&(&SD3)->iqueue);
     chSysUnlock();
+    sleep_disable();
     chThdSleepMilliseconds(10);
     D_EXIT();
     return 0;
@@ -415,6 +453,7 @@ void gsm_release_serial_port(void)
 {
     D_ENTER();
     is_raw_mode = 0;
+    sleep_enable();
     chBSemSignal(&gsm.serial_sem);
     D_EXIT();
 }
@@ -559,10 +598,7 @@ static void gsm_enable_hw_flow()
         gsm_set_serial_flow_control(1);
         gsm.flags |= HW_FLOW_ENABLED;
         gsm_cmd("ATE0"); 		/* Disable ECHO */
-        // TODO: set this to 1 and control DTR whenever *we* want to talk to the module 
-        // (the module can and will talk back to us for important things anyway, and we get RI as well, 
-        // and we could just periodically check if there was something less important the module has to say)
-        gsm_cmd("AT+CSCLK=0");      /* Do not allow module to sleep */
+        gsm_cmd("AT+CSCLK=1");      /* Allow module to sleep */
         // TODO: Do we have a better place for this command ??
         gsm_cmd("AT+CREG=2");      /* Enable cell-location URC */
     }
@@ -584,10 +620,12 @@ void gsm_set_power_state(enum Power_mode mode)
     switch(mode) {
     case POWER_ON:
         if (0 == status_pin) {
+            sleep_disable();
             gsm_toggle_power_pin();
             gsm_enable_hw_flow();
         } else {                    /* Modem already on. Possibly warm reset */
             if (gsm.state == STATE_OFF) {   /* Responses of these will feed the state machine */
+                sleep_disable();
                 gsm_cmd("AT+CPIN?");        /* Check PIN */
                 gsm_cmd("AT+CFUN?");        /* Functionality mode */
                 gsm_cmd("AT+COPS?");        /* Registered to network */
@@ -669,6 +707,7 @@ static void gsm_set_serial_flow_control(int enabled)
     if (enabled) {
         USART3->CR3 |= USART_CR3_RTSE;
         USART3->CR3 |= USART_CR3_CTSE;
+        sleep_enable();
     } else {
         USART3->CR3 &= ~USART_CR3_RTSE;
         USART3->CR3 &= ~USART_CR3_RTSE;
