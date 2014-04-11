@@ -55,6 +55,7 @@
 #define TIMEOUT_HTTP 35000      /* Http timeout, 35s */
 
 /* Modem state */
+// TODO: expose these as global api to avoid magic numbers, needs to be renamed since it conflicts with gps state...
 enum State {
     STATE_UNKNOWN = 0,
     STATE_OFF = 1,
