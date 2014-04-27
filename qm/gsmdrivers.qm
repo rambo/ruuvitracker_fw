@@ -266,6 +266,11 @@
        <state name="cfun_1">
         <documentation>The full-functionality mode</documentation>
         <entry>/* send AT+CFUN=1,0 */</entry>
+        <initial target="../1">
+         <initial_glyph conn="62,30,4,0,2">
+          <action box="0,-2,6,2"/>
+         </initial_glyph>
+        </initial>
         <state name="check_sim">
          <entry>/* check sim state, emit correct signal/trigger */</entry>
          <tran trig="NO_SIM" target="../../..">
@@ -274,8 +279,13 @@
            <action box="0,-2,6,2"/>
           </tran_glyph>
          </tran>
-         <tran trig="PIN_REQ" target="../../1">
+         <tran trig="PIN_REQ" target="../../2">
           <tran_glyph conn="50,40,3,3,30">
+           <action box="0,-2,6,2"/>
+          </tran_glyph>
+         </tran>
+         <tran trig="PIN_OK" target="../../3">
+          <tran_glyph conn="54,43,2,0,3">
            <action box="0,-2,6,2"/>
           </tran_glyph>
          </tran>
@@ -285,7 +295,7 @@
         </state>
         <state name="pin_required">
          <entry>/* check if we have PIN configured, of se send it and emit PIN_SENT, otherwise emit NO_PIN */</entry>
-         <tran trig="PIN_SENT" target="../../0">
+         <tran trig="PIN_SENT" target="../../1">
           <tran_glyph conn="80,37,3,1,-7,-1,-2">
            <action box="-8,-4,8,2"/>
           </tran_glyph>
@@ -299,25 +309,48 @@
           <entry box="1,2,5,2"/>
          </state_glyph>
         </state>
-        <state_glyph node="48,26,77,74">
+        <state name="sim_rdy">
+         <initial target="../1">
+          <initial_glyph conn="52,52,5,3,4">
+           <action box="0,-2,6,2"/>
+          </initial_glyph>
+         </initial>
+         <state name="wait_for_network">
+          <documentation>wait for network identification</documentation>
+          <entry>/* send AT+COPS? */</entry>
+          <tran trig="OPERATOR_SELECTED" target="../../2">
+           <tran_glyph conn="81,53,1,0,13,4">
+            <action box="0,-2,17,2"/>
+           </tran_glyph>
+          </tran>
+          <state_glyph node="56,50,25,6">
+           <entry box="1,2,5,2"/>
+          </state_glyph>
+         </state>
+         <state name="network_rdy">
+          <state_glyph node="52,57,88,76"/>
+         </state>
+         <state_glyph node="50,46,91,88"/>
+        </state>
+        <state_glyph node="48,26,94,109">
          <entry box="1,2,5,2"/>
         </state_glyph>
        </state>
-       <state_glyph node="37,21,89,80">
+       <state_glyph node="37,21,106,115">
         <entry box="1,2,5,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="34,9,93,93">
+      <state_glyph node="34,9,110,128">
        <entry box="1,2,5,2"/>
        <exit box="1,4,5,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="22,5,106,98">
+     <state_glyph node="22,5,123,134">
       <entry box="1,2,5,2"/>
       <exit box="1,4,5,2"/>
      </state_glyph>
     </state>
-    <state_diagram size="130,105"/>
+    <state_diagram size="153,187"/>
    </statechart>
   </class>
  </package>
