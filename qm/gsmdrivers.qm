@@ -45,6 +45,7 @@
       </tran_glyph>
      </tran>
      <state name="idle">
+      <documentation>TODO: since module wakeup takes time we will want a separate sleep state that is entered when there have been no messages going either way for X milliseconds</documentation>
       <entry>/* put the module to sleep via DTR */</entry>
       <exit>/* wake the module via DTR */</exit>
       <tran trig="RING" target="../../3">
@@ -70,7 +71,7 @@
      </state>
      <state name="Listening">
       <documentation>/* TODO: how the poll for the serialport, I guess incoming data would have to be modelled as signals too */</documentation>
-      <entry>/* arm the listen timer, keep the module seriaport enabled via DTR */</entry>
+      <entry>/* arm the listen timer */</entry>
       <exit>/* disarm the timer */</exit>
       <tran trig="TIMEOUT" target="../../2">
        <action>/* Signal the caller about error somehow */</action>
@@ -123,7 +124,8 @@
        </initial_glyph>
       </initial>
       <state name="module_wakeup">
-       <entry>/* wakeup the module via DTR (though exiting idle should have done this already), arm timer for the required wakeup time */</entry>
+       <entry>/* arm timer for the required wakeup time */</entry>
+       <exit>/* disarm the wakeup timer */</exit>
        <tran trig="TIMEOUT" target="../../2">
         <tran_glyph conn="50,39,2,0,0,-1,2">
          <action box="-3,-2,8,2"/>
@@ -131,6 +133,7 @@
        </tran>
        <state_glyph node="37,32,17,7">
         <entry box="1,2,5,2"/>
+        <exit box="1,4,5,2"/>
        </state_glyph>
       </state>
       <state name="trasmitting">
