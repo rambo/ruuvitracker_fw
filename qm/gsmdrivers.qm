@@ -14,6 +14,7 @@
    <attribute name="listen_timeout" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <statechart>
     <initial target="../1">
+     <action>/* subscribe to the turn_on and turn_off signals */</action>
      <initial_glyph conn="4,2,5,0,8,3">
       <action box="0,-2,6,2"/>
      </initial_glyph>
@@ -32,6 +33,7 @@
     <state name="on">
      <entry>/* Enable serial peripheral, keep module serialport enabled via DTR */</entry>
      <initial target="../2">
+      <action>/* subscribe to the signals used */</action>
       <initial_glyph conn="46,13,4,0,5">
        <action box="2,0,6,2"/>
       </initial_glyph>
