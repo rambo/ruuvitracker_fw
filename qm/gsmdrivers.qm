@@ -3,13 +3,121 @@
  <documentation>Simple model template for QP/C</documentation>
  <framework name="qpc"/>
  <package name="Events" stereotype="0x01">
-  <class name="MyEvt" superclass="qpc::QEvt"/>
+  <class name="MyEvt" superclass="qpc::QEvt">
+   <attribute name="attr1" type="" visibility="0x00" properties="0x00"/>
+  </class>
  </package>
  <package name="AOs" stereotype="0x02">
-  <class name="MyAO" superclass="qpc::QActive">
-   <documentation>Test active object</documentation>
+  <class name="SerialDrv" superclass="qpc::QActive">
+   <documentation>GSM Serial port driver
+</documentation>
+   <attribute name="listen_timeout" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <statechart>
-    <state_diagram size="80,50"/>
+    <initial target="../1">
+     <initial_glyph conn="4,2,5,0,8,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="off">
+     <entry>/* disable serial peripheral to conserve power */</entry>
+     <tran trig="TURN_ON" target="../../2">
+      <tran_glyph conn="22,9,1,3,11,1,2">
+       <action box="0,-2,9,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,5,18,12">
+      <entry box="1,2,13,8"/>
+     </state_glyph>
+    </state>
+    <state name="on">
+     <entry>/* Enable serial peripheral, keep module serialport enabled via DTR */</entry>
+     <initial target="../2">
+      <initial_glyph conn="46,13,4,0,5">
+       <action box="2,0,6,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="TURN_OFF" target="../../1">
+      <tran_glyph conn="35,15,3,1,-11,-1,-2">
+       <action box="-10,-2,10,3"/>
+      </tran_glyph>
+     </tran>
+     <state name="initializing">
+      <entry>/* Initialize the serialport and module sleep modes,signal INIT_DONE when ready */</entry>
+      <tran trig="INIT_DONE" target="../../3">
+       <tran_glyph conn="55,22,1,3,12">
+        <action box="0,-2,9,3"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="38,18,17,8">
+       <entry box="1,2,15,3"/>
+      </state_glyph>
+     </state>
+     <state name="idle">
+      <entry>/* put the module to sleep via DTR */</entry>
+      <exit>/* wake the module via DTR */</exit>
+      <tran trig="RING" target="../../4">
+       <tran_glyph conn="71,26,2,0,6">
+        <action box="-6,1,6,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="TX_BUFFER_RDY" target="../../5">
+       <tran_glyph conn="67,24,3,1,-11,12,-2">
+        <action box="-17,4,14,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="67,18,24,8">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
+     </state>
+     <state name="Listening">
+      <documentation>/* TODO: how the poll for the serialport, I guess incoming data would have to be modelled as signals too */</documentation>
+      <entry>/* arm the listen timer, keep the module seriaport enabled via DTR */</entry>
+      <exit>/* disarm the timer */</exit>
+      <tran trig="TIMEOUT" target="../../3">
+       <action>/* Signal the caller about error somehow */</action>
+       <tran_glyph conn="92,40,1,1,4,-17,-5">
+        <action box="4,-2,9,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="MESSAGE_RECEIVED" target="../../3">
+       <action>/* signal the message contents at least to the module state machine */</action>
+       <tran_glyph conn="87,32,0,2,-6">
+        <action box="-8,-3,17,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="66,32,26,16">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
+     </state>
+     <state name="module_wakeup">
+      <entry>/* wakeup the module via DTR, arm timer for the required wakeup time */</entry>
+      <tran trig="TIMEOUT" target="../../6">
+       <tran_glyph conn="50,39,2,0,2">
+        <action box="-3,-2,8,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="37,32,17,7">
+       <entry box="1,2,5,2"/>
+      </state_glyph>
+     </state>
+     <state name="trasmitting">
+      <entry>/* transmit the buffer, signal buffer_done when ready */</entry>
+      <tran trig="TX_BUFFER_DONE" target="../../4">
+       <tran_glyph conn="54,45,1,3,12">
+        <action box="-2,-2,17,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="38,41,16,7">
+       <entry box="1,2,5,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="35,6,73,49">
+      <entry box="1,2,23,5"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="115,58"/>
    </statechart>
   </class>
  </package>
