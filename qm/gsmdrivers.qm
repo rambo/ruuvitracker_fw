@@ -337,14 +337,19 @@
           </state_glyph>
          </state>
          <state name="network_rdy">
-          <tran trig="READ_SMS" target="../2">
+          <tran trig="READ_SMS" target="../3">
            <tran_glyph conn="52,66,3,3,8">
             <action box="0,-2,10,2"/>
            </tran_glyph>
           </tran>
-          <tran trig="SEND_SMS" target="../3">
+          <tran trig="SEND_SMS" target="../4">
            <tran_glyph conn="52,76,3,3,8">
             <action box="0,-2,9,2"/>
+           </tran_glyph>
+          </tran>
+          <tran trig="GPRS_CONNECT" target="../5">
+           <tran_glyph conn="140,66,1,1,-13">
+            <action box="-12,-2,12,2"/>
            </tran_glyph>
           </tran>
           <state name="read_sms">
@@ -352,6 +357,7 @@
            <entry>/* initialize the read, set the serialport to raw mode, parse message, emit read-complete signal when done */</entry>
            <exit>/* restore serialport to normal mode */</exit>
            <tran trig="READ_DONE" target="../..">
+            <action>/* TODO: what if we were in gprs_ready state ?? */</action>
             <tran_glyph conn="78,66,1,0,4,-9">
              <action box="-6,-2,9,2"/>
             </tran_glyph>
@@ -365,6 +371,7 @@
            <entry>/* initialize the read, set the serialport to raw mode, send message, emit send-complete signal when done */</entry>
            <exit>/* restore serialport to normal mode */</exit>
            <tran trig="SEND_DONE" target="../..">
+            <action>/* TODO: what if we were in gprs_ready state ?? */</action>
             <tran_glyph conn="78,78,1,0,8,-21">
              <action box="-4,-2,10,2"/>
             </tran_glyph>
@@ -373,6 +380,34 @@
             <entry box="1,2,5,2"/>
             <exit box="1,4,5,2"/>
            </state_glyph>
+          </state>
+          <state name="configure_gprs">
+           <documentation>/* configure APN, enable connection */</documentation>
+           <entry>/* query gprs state, send configuration commands */</entry>
+           <tran trig="GPRS_CONNECTED" target="../../6">
+            <tran_glyph conn="124,72,2,0,12">
+             <action box="-13,-2,16,2"/>
+            </tran_glyph>
+           </tran>
+           <state_glyph node="103,62,24,10">
+            <entry box="1,2,5,2"/>
+           </state_glyph>
+          </state>
+          <state name="gprs_ready">
+           <tran trig="GPRS_DISCONNECT" target="../..">
+            <tran_glyph conn="100,84,0,0,-27">
+             <action box="0,-2,16,2"/>
+            </tran_glyph>
+           </tran>
+           <state name="HTTP_connection">
+            <documentation>TODO: document this and model the substates and whatnot</documentation>
+            <state_glyph node="58,90,18,12"/>
+           </state>
+           <state name="socket_connection">
+            <documentation>TODO: document this and model the substates and whatnot</documentation>
+            <state_glyph node="82,91,22,12"/>
+           </state>
+           <state_glyph node="54,84,85,48"/>
           </state>
           <state_glyph node="52,57,88,76"/>
          </state>
