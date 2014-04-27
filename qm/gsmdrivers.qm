@@ -12,6 +12,7 @@
    <documentation>GSM Serial port driver
 </documentation>
    <attribute name="listen_timeout" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <attribute name="txbufferptr" type="void" visibility="0x00" properties="0x00"/>
    <statechart>
     <initial target="../1">
      <action>/* subscribe to the turn_on and turn_off signals */</action>
@@ -45,26 +46,31 @@
       </tran_glyph>
      </tran>
      <state name="idle">
-      <documentation>TODO: since module wakeup takes time we will want a separate sleep state that is entered when there have been no messages going either way for X milliseconds</documentation>
-      <entry>/* put the module to sleep via DTR */</entry>
-      <exit>/* wake the module via DTR */</exit>
+      <entry>/* arm sleep timer, check for txbuffer if so, signal TX_BUFFER_RDY (or just transition, I'm having trouble drawing this condition) */</entry>
+      <exit>/* disarm sleep timer */</exit>
       <tran trig="RING" target="../../3">
        <action>/* we suppose the module wakes it's serialport in this case automagically */</action>
-       <tran_glyph conn="71,26,2,0,6">
+       <tran_glyph conn="71,33,2,0,6">
         <action box="-6,1,6,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="TX_BUFFER_RDY" target="../../6">
-       <tran_glyph conn="67,24,3,0,-11,5">
+      <tran trig="TX_BUFFER_RDY" target="../../8">
+       <action>/* set me-&gt;txbufferptr to the requires buffer */</action>
+       <tran_glyph conn="67,31,3,0,-18,15">
         <action box="-17,2,14,2"/>
        </tran_glyph>
       </tran>
       <tran trig="ENTER_RAW_MODE" target="../../4">
-       <tran_glyph conn="86,18,0,1,-1,23,46,-30">
-        <action box="-1,-3,16,2"/>
+       <tran_glyph conn="91,24,1,1,18,47,-29">
+        <action box="2,-2,16,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="67,18,24,8">
+      <tran trig="TIMEOUT" target="../../6">
+       <tran_glyph conn="70,22,0,2,-5">
+        <action box="0,-2,8,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="67,22,24,11">
        <entry box="1,2,5,2"/>
        <exit box="1,4,5,2"/>
       </state_glyph>
@@ -75,23 +81,23 @@
       <exit>/* disarm the timer */</exit>
       <tran trig="TIMEOUT" target="../../2">
        <action>/* Signal the caller about error somehow */</action>
-       <tran_glyph conn="92,40,1,1,4,-17,-5">
+       <tran_glyph conn="92,47,1,1,4,-17,-5">
         <action box="4,-2,9,2"/>
        </tran_glyph>
       </tran>
       <tran trig="MESSAGE_RECEIVED" target="../../2">
        <action>/* signal the message contents at least to the module state machine */</action>
-       <tran_glyph conn="87,32,0,2,-6">
+       <tran_glyph conn="87,39,0,2,-6">
         <action box="-8,-3,17,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DATA_RECEIVED">
        <action>/* parse the data, signal MESSAGE_RECEIVED if we have a full line of data */</action>
-       <tran_glyph conn="66,42,3,-1,10">
+       <tran_glyph conn="66,49,3,-1,10">
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="66,32,26,16">
+      <state_glyph node="66,39,26,16">
        <entry box="1,2,5,2"/>
        <exit box="1,4,5,2"/>
       </state_glyph>
@@ -99,16 +105,16 @@
      <state name="raw_mode">
       <documentation>raw mode for sms/ip/whatnot, normal message parsing is disabled</documentation>
       <tran trig="EXIT_RAW_MODE" target="../../2">
-       <tran_glyph conn="79,67,1,1,27,-46,-15">
+       <tran_glyph conn="80,75,1,1,27,-47,-16">
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="40,58,39,14"/>
+      <state_glyph node="41,66,39,14"/>
      </state>
      <state name="initializing">
       <entry>/* Initialize the serialport and module sleep modes,signal INIT_DONE when ready */</entry>
       <tran trig="INIT_DONE" target="../../2">
-       <tran_glyph conn="55,20,1,3,10,2,2">
+       <tran_glyph conn="55,20,1,3,10,9,2">
         <action box="0,-2,9,3"/>
        </tran_glyph>
       </tran>
@@ -116,48 +122,53 @@
        <entry box="1,2,15,3"/>
       </state_glyph>
      </state>
-     <state name="tx_super">
-      <initial target="../1">
-       <action>/* TODO: make a choice that checks whether module was asleep or not */</action>
-       <initial_glyph conn="56,33,4,1,3,-2">
-        <action box="0,-2,6,2"/>
-       </initial_glyph>
-      </initial>
-      <state name="module_wakeup">
-       <entry>/* arm timer for the required wakeup time */</entry>
-       <exit>/* disarm the wakeup timer */</exit>
-       <tran trig="TIMEOUT" target="../../2">
-        <tran_glyph conn="50,39,2,0,0,-1,2">
-         <action box="-3,-2,8,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="37,32,17,7">
-        <entry box="1,2,5,2"/>
-        <exit box="1,4,5,2"/>
-       </state_glyph>
-      </state>
-      <state name="trasmitting">
-       <entry>/* arm the tx_timeout timer, transmit the buffer, signal buffer_done when ready */</entry>
-       <exit>/* disarm tx_timeout */</exit>
-       <tran trig="TX_BUFFER_DONE" target="../../../3">
-        <tran_glyph conn="53,45,1,3,13">
-         <action box="-2,-2,17,2"/>
-        </tran_glyph>
-       </tran>
-       <tran trig="TIMEOUT" target="../../../2">
-        <action>/* signal TX failure */</action>
-        <tran_glyph conn="45,48,2,0,4,59,-38,-25,4">
-         <action box="1,1,10,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="37,41,16,7">
-        <entry box="1,2,5,2"/>
-        <exit box="1,4,5,2"/>
-       </state_glyph>
-      </state>
-      <state_glyph node="36,29,24,24"/>
+     <state name="sleeping">
+      <entry>/* sleep the module via DTR */</entry>
+      <exit>/* wake the module via DTR */</exit>
+      <tran trig="TX_BUFFER_RDY" target="../../7">
+       <action>/* set me-&gt;txbufferptr to the requires buffer */</action>
+       <tran_glyph conn="80,14,1,3,9">
+        <action box="-3,-2,14,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="65,10,15,7">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
      </state>
-     <state_glyph node="35,6,80,70">
+     <state name="module_wakeup">
+      <entry>/* arm timer for the required wakeup time */</entry>
+      <exit>/* disarm the wakeup timer */</exit>
+      <tran trig="TIMEOUT" target="../../2">
+       <tran_glyph conn="91,17,2,0,3,-6,2">
+        <action box="0,0,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="89,10,17,7">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
+     </state>
+     <state name="trasmitting">
+      <entry>/* arm the tx_timeout timer, transmit the buffer, signal buffer_done when ready */</entry>
+      <exit>/* disarm tx_timeout, clear me-&gt;txbufferptr */</exit>
+      <tran trig="TX_BUFFER_DONE" target="../../3">
+       <tran_glyph conn="53,50,1,3,11,2,2">
+        <action box="-2,-2,17,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="TIMEOUT" target="../../2">
+       <action>/* signal TX failure */</action>
+       <tran_glyph conn="45,53,2,1,9,59,-36,-13">
+        <action box="1,1,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="37,46,16,7">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="35,6,80,77">
       <entry box="1,2,7,2"/>
       <exit box="1,4,5,2"/>
      </state_glyph>
