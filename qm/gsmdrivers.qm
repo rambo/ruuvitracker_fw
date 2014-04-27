@@ -178,6 +178,9 @@
   <class name="GSMDrv" superclass="qpc::QActive">
    <documentation>The main module driver HSM
 </documentation>
+   <attribute name="smsstructptr" type="void" visibility="0x00" properties="0x00">
+    <documentation>pointer to buffer for sms struct (which defines the sender/recipient number and a pointer to a char buffer containing the message)</documentation>
+   </attribute>
    <statechart>
     <initial target="../1">
      <initial_glyph conn="4,2,5,0,6,3">
@@ -301,7 +304,7 @@
           </tran_glyph>
          </tran>
          <tran trig="NO_PIN" target="../../..">
-          <tran_glyph conn="96,37,1,0,-4,-16">
+          <tran_glyph conn="96,37,1,0,2,-16">
            <action box="-4,-2,9,2"/>
           </tran_glyph>
          </tran>
