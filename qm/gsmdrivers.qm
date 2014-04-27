@@ -32,6 +32,7 @@
     </state>
     <state name="on">
      <entry>/* Enable serial peripheral, keep module serialport enabled via DTR */</entry>
+     <exit>/* put module to sleep via DTR */</exit>
      <initial target="../2">
       <action>/* subscribe to the signals used */</action>
       <initial_glyph conn="46,13,4,0,5">
@@ -105,18 +106,27 @@
       </state_glyph>
      </state>
      <state name="trasmitting">
-      <entry>/* transmit the buffer, signal buffer_done when ready */</entry>
+      <entry>/* arm the tx_timeout timer, transmit the buffer, signal buffer_done when ready */</entry>
+      <exit>/* disarm tx_timeout */</exit>
       <tran trig="TX_BUFFER_DONE" target="../../4">
        <tran_glyph conn="54,45,1,3,12">
         <action box="-2,-2,17,2"/>
        </tran_glyph>
       </tran>
+      <tran trig="TIMEOUT" target="../../3">
+       <action>/* signal TX failure */</action>
+       <tran_glyph conn="46,48,2,0,4,59,-38,-26,4">
+        <action box="1,1,10,2"/>
+       </tran_glyph>
+      </tran>
       <state_glyph node="38,41,16,7">
        <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
       </state_glyph>
      </state>
      <state_glyph node="35,6,73,49">
-      <entry box="1,2,23,5"/>
+      <entry box="1,2,7,2"/>
+      <exit box="1,4,5,2"/>
      </state_glyph>
     </state>
     <state_diagram size="115,58"/>
