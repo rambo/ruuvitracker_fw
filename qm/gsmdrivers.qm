@@ -9,8 +9,7 @@
  </package>
  <package name="AOs" stereotype="0x02">
   <class name="SerialDrv" superclass="qpc::QActive">
-   <documentation>GSM Serial port driver
-</documentation>
+   <documentation>Just the serialport, it's a bit of a domain on it's own, thus separate AO</documentation>
    <attribute name="listen_timeout" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <attribute name="txbufferptr" type="void" visibility="0x00" properties="0x00"/>
    <statechart>
@@ -174,6 +173,74 @@
      </state_glyph>
     </state>
     <state_diagram size="116,108"/>
+   </statechart>
+  </class>
+  <class name="GSMDrv" superclass="qpc::QActive">
+   <documentation>The main module driver HSM
+</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="4,2,5,0,6,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="cut_off">
+     <documentation>The FET is off, the module has no vbat</documentation>
+     <entry>/* do nothing, the power domain might be requested by another thread */</entry>
+     <tran trig="power_on" target="../../2/3">
+      <tran_glyph conn="17,5,0,0,-3,35,7">
+       <action box="0,-3,8,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,5,15,8">
+      <entry box="1,2,5,2"/>
+     </state_glyph>
+    </state>
+    <state name="vbat_connected">
+     <entry>/* request FET power domain */</entry>
+     <exit>/* release FET power domain */</exit>
+     <initial target="../2">
+      <initial_glyph conn="30,9,4,0,3">
+       <action box="0,-2,6,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="cut_off" target="../../1">
+      <tran_glyph conn="22,17,3,2,-12,-4">
+       <action box="-10,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="off">
+      <documentation>powered off via the &quot;power button&quot; on the SIMCOM module</documentation>
+      <entry>/* do nothing, the power button is handled by the on-state entry/exit */</entry>
+      <tran trig="power_on" target="../../3">
+       <tran_glyph conn="25,19,2,3,6,9">
+        <action box="-1,6,8,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="24,12,9,7">
+       <entry box="1,2,5,2"/>
+      </state_glyph>
+     </state>
+     <state name="on">
+      <documentation>Module is powered on via the &quot;power button&quot;</documentation>
+      <entry>/* poweron the module via the power-button sequence, signal the serialport driver to start */</entry>
+      <exit>/* poweroff the module via the power-button sequence, signal the serialport driver to stop */</exit>
+      <tran trig="power_off" target="../../2">
+       <tran_glyph conn="34,23,3,2,-7,-4">
+        <action box="-7,-2,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="34,9,93,93">
+       <entry box="1,2,5,2"/>
+       <exit box="1,4,5,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="22,5,106,98">
+      <entry box="1,2,5,2"/>
+      <exit box="1,4,5,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="130,105"/>
    </statechart>
   </class>
  </package>
