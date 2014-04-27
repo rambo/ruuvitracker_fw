@@ -261,9 +261,9 @@
          <action box="0,-2,8,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="ONLINE" target="../3">
+       <tran trig="GSM_ONLINE" target="../3">
         <tran_glyph conn="37,36,3,3,11">
-         <action box="0,-2,6,2"/>
+         <action box="0,-2,11,2"/>
         </tran_glyph>
        </tran>
        <state name="cfun_1">
@@ -337,6 +337,43 @@
           </state_glyph>
          </state>
          <state name="network_rdy">
+          <tran trig="READ_SMS" target="../2">
+           <tran_glyph conn="52,66,3,3,8">
+            <action box="0,-2,10,2"/>
+           </tran_glyph>
+          </tran>
+          <tran trig="SEND_SMS" target="../3">
+           <tran_glyph conn="52,76,3,3,8">
+            <action box="0,-2,9,2"/>
+           </tran_glyph>
+          </tran>
+          <state name="read_sms">
+           <documentation>strictly speaking this works for sms' stored on sim at SIM-ready phase too, but we cannot receive new ones without the network...</documentation>
+           <entry>/* initialize the read, set the serialport to raw mode, parse message, emit read-complete signal when done */</entry>
+           <exit>/* restore serialport to normal mode */</exit>
+           <tran trig="READ_DONE" target="../..">
+            <tran_glyph conn="78,66,1,0,4,-9">
+             <action box="-6,-2,9,2"/>
+            </tran_glyph>
+           </tran>
+           <state_glyph node="60,62,18,9">
+            <entry box="1,2,5,2"/>
+            <exit box="1,4,5,2"/>
+           </state_glyph>
+          </state>
+          <state name="send_sms">
+           <entry>/* initialize the read, set the serialport to raw mode, send message, emit send-complete signal when done */</entry>
+           <exit>/* restore serialport to normal mode */</exit>
+           <tran trig="SEND_DONE" target="../..">
+            <tran_glyph conn="78,78,1,0,8,-21">
+             <action box="-4,-2,10,2"/>
+            </tran_glyph>
+           </tran>
+           <state_glyph node="60,73,18,9">
+            <entry box="1,2,5,2"/>
+            <exit box="1,4,5,2"/>
+           </state_glyph>
+          </state>
           <state_glyph node="52,57,88,76"/>
          </state>
          <state_glyph node="50,46,91,88"/>
