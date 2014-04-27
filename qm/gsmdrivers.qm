@@ -31,8 +31,8 @@
      </state_glyph>
     </state>
     <state name="on">
-     <entry>/* Enable serial peripheral, keep module serialport enabled via DTR */</entry>
-     <exit>/* put module to sleep via DTR */</exit>
+     <entry>/* Enable serial peripheral, keep module serialport enabled via DTR, setup RING signal as wakeup source from STOP */</entry>
+     <exit>/* put module to sleep via DTR, remove RING signal as wakeup source from STOP */</exit>
      <initial target="../5">
       <action>/* subscribe to the signals used */</action>
       <initial_glyph conn="46,13,4,0,3">
@@ -112,9 +112,9 @@
      </state>
      <state name="initializing">
       <entry>/* Initialize the serialport and module sleep modes,signal INIT_DONE when ready */</entry>
-      <tran trig="INIT_DONE" target="../../2">
+      <tran trig="SERIAL_INIT_DONE" target="../../2">
        <tran_glyph conn="55,20,1,3,10,9,2">
-        <action box="0,-2,9,3"/>
+        <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="38,16,17,8">
@@ -225,11 +225,88 @@
       <documentation>Module is powered on via the &quot;power button&quot;</documentation>
       <entry>/* poweron the module via the power-button sequence, signal the serialport driver to start */</entry>
       <exit>/* poweroff the module via the power-button sequence, signal the serialport driver to stop */</exit>
+      <initial target="../2">
+       <initial_glyph conn="38,17,5,3,6">
+        <action box="0,-2,6,2"/>
+       </initial_glyph>
+      </initial>
       <tran trig="power_off" target="../../2">
        <tran_glyph conn="34,23,3,2,-7,-4">
         <action box="-7,-2,6,2"/>
        </tran_glyph>
       </tran>
+      <state name="wait_for_serial_init">
+       <tran trig="SERIAL_INIT_DONE" target="../../3">
+        <tran_glyph conn="69,16,1,0,2,5">
+         <action box="0,-2,15,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="44,13,25,6"/>
+      </state>
+      <state name="cfun_0">
+       <documentation>minimal functionality mode</documentation>
+       <entry>/* send AT+CFUN=0,0 */</entry>
+       <tran trig="GPIO_REQ">
+        <action>/* ask the serial driver about the GPIO status */</action>
+        <tran_glyph conn="37,28,3,-1,5">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="BAT_REQ">
+        <action>/* ask the serial driver about the battery status */</action>
+        <tran_glyph conn="37,32,3,-1,5">
+         <action box="0,-2,8,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="ONLINE" target="../3">
+        <tran_glyph conn="37,36,3,3,11">
+         <action box="0,-2,6,2"/>
+        </tran_glyph>
+       </tran>
+       <state name="cfun_1">
+        <documentation>The full-functionality mode</documentation>
+        <entry>/* send AT+CFUN=1,0 */</entry>
+        <state name="check_sim">
+         <entry>/* check sim state, emit correct signal/trigger */</entry>
+         <tran trig="NO_SIM" target="../../..">
+          <action>/* if we have no SIM there is no point for cfun1, drop to cfun0 */</action>
+          <tran_glyph conn="50,38,3,0,7,-17">
+           <action box="0,-2,6,2"/>
+          </tran_glyph>
+         </tran>
+         <tran trig="PIN_REQ" target="../../1">
+          <tran_glyph conn="50,40,3,3,30">
+           <action box="0,-2,6,2"/>
+          </tran_glyph>
+         </tran>
+         <state_glyph node="50,32,21,11">
+          <entry box="1,2,5,2"/>
+         </state_glyph>
+        </state>
+        <state name="pin_required">
+         <entry>/* check if we have PIN configured, of se send it and emit PIN_SENT, otherwise emit NO_PIN */</entry>
+         <tran trig="PIN_SENT" target="../../0">
+          <tran_glyph conn="80,37,3,1,-7,-1,-2">
+           <action box="-8,-4,8,2"/>
+          </tran_glyph>
+         </tran>
+         <tran trig="NO_PIN" target="../../..">
+          <tran_glyph conn="96,37,1,0,-4,-16">
+           <action box="-4,-2,9,2"/>
+          </tran_glyph>
+         </tran>
+         <state_glyph node="80,32,16,11">
+          <entry box="1,2,5,2"/>
+         </state_glyph>
+        </state>
+        <state_glyph node="48,26,77,74">
+         <entry box="1,2,5,2"/>
+        </state_glyph>
+       </state>
+       <state_glyph node="37,21,89,80">
+        <entry box="1,2,5,2"/>
+       </state_glyph>
+      </state>
       <state_glyph node="34,9,93,93">
        <entry box="1,2,5,2"/>
        <exit box="1,4,5,2"/>
