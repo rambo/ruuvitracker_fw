@@ -249,13 +249,13 @@
       <state name="cfun_0">
        <documentation>minimal functionality mode</documentation>
        <entry>/* send AT+CFUN=0,0 */</entry>
-       <tran trig="GPIO_REQ">
+       <tran trig="GPIO_CMD">
         <action>/* ask the serial driver about the GPIO status */</action>
         <tran_glyph conn="37,28,3,-1,5">
          <action box="0,-2,10,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="BAT_REQ">
+       <tran trig="BAT_READ">
         <action>/* ask the serial driver about the battery status */</action>
         <tran_glyph conn="37,32,3,-1,5">
          <action box="0,-2,8,2"/>
@@ -269,11 +269,17 @@
        <state name="cfun_1">
         <documentation>The full-functionality mode</documentation>
         <entry>/* send AT+CFUN=1,0 */</entry>
-        <initial target="../1">
+        <initial target="../2">
          <initial_glyph conn="62,30,4,0,2">
           <action box="0,-2,6,2"/>
          </initial_glyph>
         </initial>
+        <tran trig="AT_CMD">
+         <action>/* ask the serial driver for status of given AT command the does not require network yet */</action>
+         <tran_glyph conn="142,39,1,-1,-13">
+          <action box="-10,0,9,2"/>
+         </tran_glyph>
+        </tran>
         <state name="check_sim">
          <entry>/* check sim state, emit correct signal/trigger */</entry>
          <tran trig="NO_SIM" target="../../..">
@@ -282,12 +288,12 @@
            <action box="0,-2,6,2"/>
           </tran_glyph>
          </tran>
-         <tran trig="PIN_REQ" target="../../2">
+         <tran trig="PIN_REQ" target="../../3">
           <tran_glyph conn="50,40,3,3,30">
            <action box="0,-2,6,2"/>
           </tran_glyph>
          </tran>
-         <tran trig="PIN_OK" target="../../3">
+         <tran trig="PIN_OK" target="../../4">
           <tran_glyph conn="54,43,2,0,3">
            <action box="0,-2,6,2"/>
           </tran_glyph>
@@ -298,7 +304,7 @@
         </state>
         <state name="pin_required">
          <entry>/* check if we have PIN configured, of se send it and emit PIN_SENT, otherwise emit NO_PIN */</entry>
-         <tran trig="PIN_SENT" target="../../1">
+         <tran trig="PIN_SENT" target="../../2">
           <tran_glyph conn="80,37,3,1,-7,-1,-2">
            <action box="-8,-4,8,2"/>
           </tran_glyph>
