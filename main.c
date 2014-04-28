@@ -35,6 +35,7 @@
 #include "drivers/reset_button.h"
 #include "drivers/rtchelpers.h"
 #include "drivers/sdcard.h"
+#include "drivers/testplatform.h"
 
 /* I2C interface #1 */
 // TODO: This should probably be defined in board.h or something. It needs to be globally accessible because in case of I2C timeout we *must* reinit the whole I2C subsystem
@@ -254,6 +255,8 @@ static const ShellCommand commands[] = {
     {"acc", cmd_accread},
     {"mount", sdcard_cmd_mount},
     {"ls", sdcard_cmd_ls},
+    {"tp_sync", cmd_tp_sync},
+    {"tp_set_syncpin", cmd_tp_set_syncpin},
     {NULL, NULL}
 };
 
@@ -305,6 +308,11 @@ int main(void)
     halInit();
     chSysInit();
 
+    /**
+     * initialize the HAL stuff the testplatform needs
+     */
+    tp_init();
+
     /*
      * Initializes a serial-over-USB CDC driver.
      */
@@ -330,7 +338,7 @@ int main(void)
 
     /*
      * Normal main() thread activity, in this demo it does nothing except
-     * sleeping in a loop and check the button state.
+     * sleeping in a loop and check the USB state.
      */
     while (TRUE) {
         if (!shelltp && (SDU.config->usbp->state == USB_ACTIVE)) {
