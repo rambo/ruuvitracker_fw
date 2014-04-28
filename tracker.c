@@ -1,7 +1,15 @@
+#ifndef GPRS_APN
 #define GPRS_APN "internet.saunalahti"
+#endif
+#ifndef TRACKER_CODE
+#define TRACKER_CODE "sepeto"
+#endif
+#ifndef SHARED_SECRET
 #define SHARED_SECRET "sepeto"
-#define SIM_PIN 1234
-
+#endif
+#ifndef SIM_PIN
+#define SIM_PIN "1234"
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -20,77 +28,78 @@
 #include "drivers/sha1.h"
 #include "drivers/debug.h"
 #include "drivers/reset_button.h"
+#include "drivers/testplatform.h"
 
 
-#define SHA1_STR_LEN	40
-#define SHA1_LEN	20
-#define BLOCKSIZE	64
+#define SHA1_STR_LEN    40
+#define SHA1_LEN    20
+#define BLOCKSIZE   64
 #define IPAD 0x36
 #define OPAD 0x5C
 
 /* Helper to get hash from library */
 static void get_hash(SHA1Context *sha, char *p)
 {
-	int i;
-	for(i=0; i<5; i++) {
-		*p++ = (sha->Message_Digest[i]>>24)&0xff;
-		*p++ = (sha->Message_Digest[i]>>16)&0xff;
-		*p++ = (sha->Message_Digest[i]>>8)&0xff;
-		*p++ = (sha->Message_Digest[i]>>0)&0xff;
-	}
+    int i;
+    for(i=0; i<5; i++) {
+        *p++ = (sha->Message_Digest[i]>>24)&0xff;
+        *p++ = (sha->Message_Digest[i]>>16)&0xff;
+        *p++ = (sha->Message_Digest[i]>>8)&0xff;
+        *p++ = (sha->Message_Digest[i]>>0)&0xff;
+    }
 }
 
 static char *sha1_hmac(const char *secret, const char *msg)
 {
-	static char response[SHA1_STR_LEN];
-	SHA1Context sha1,sha2;
-	char key[BLOCKSIZE];
-	char hash[SHA1_LEN];
-	int i;
-	size_t len;
+    static char response[SHA1_STR_LEN];
+    SHA1Context sha1,sha2;
+    char key[BLOCKSIZE];
+    char hash[SHA1_LEN];
+    int i;
+    size_t len;
 
-	len = strlen(secret);
+    len = strlen(secret);
 
-	//Fill with zeroes
-	memset(key, 0, BLOCKSIZE);
+    //Fill with zeroes
+    memset(key, 0, BLOCKSIZE);
 
-	if (len > BLOCKSIZE) {
-		//Too long key, shorten with hash
-		SHA1Reset(&sha1);
-		SHA1Input(&sha1, (const unsigned char *)secret, len);
-		SHA1Result(&sha1);
-		get_hash(&sha1, key);
-	} else {
-		memcpy(key, secret, len);
-	}
+    if (len > BLOCKSIZE) {
+        //Too long key, shorten with hash
+        SHA1Reset(&sha1);
+        SHA1Input(&sha1, (const unsigned char *)secret, len);
+        SHA1Result(&sha1);
+        get_hash(&sha1, key);
+    } else {
+        memcpy(key, secret, len);
+    }
 
-	//XOR key with IPAD
-	for (i=0; i<BLOCKSIZE; i++) {
-		key[i] ^= IPAD;
-	}
+    //XOR key with IPAD
+    for (i=0; i<BLOCKSIZE; i++) {
+        key[i] ^= IPAD;
+    }
 
-	//First SHA hash
-	SHA1Reset(&sha1);
-	SHA1Input(&sha1, (const unsigned char *)key, BLOCKSIZE);
-	SHA1Input(&sha1, (const unsigned char *)msg, strlen(msg));
-	SHA1Result(&sha1);
-	get_hash(&sha1, hash);
+    //First SHA hash
+    SHA1Reset(&sha1);
+    SHA1Input(&sha1, (const unsigned char *)key, BLOCKSIZE);
+    SHA1Input(&sha1, (const unsigned char *)msg, strlen(msg));
+    SHA1Result(&sha1);
+    get_hash(&sha1, hash);
 
-	//XOR key with OPAD
-	for (i=0; i<BLOCKSIZE; i++) {
-		key[i] ^= IPAD ^ OPAD;
-	}
+    //XOR key with OPAD
+    for (i=0; i<BLOCKSIZE; i++) {
+        key[i] ^= IPAD ^ OPAD;
+    }
 
-	//Second hash
-	SHA1Reset(&sha2);
-	SHA1Input(&sha2, (const unsigned char *)key, BLOCKSIZE);
-	SHA1Input(&sha2, (const unsigned char *)hash, SHA1_LEN);
-	SHA1Result(&sha2);
+    //Second hash
+    SHA1Reset(&sha2);
+    SHA1Input(&sha2, (const unsigned char *)key, BLOCKSIZE);
+    SHA1Input(&sha2, (const unsigned char *)hash, SHA1_LEN);
+    SHA1Result(&sha2);
 
-	for(i = 0; i < 5 ; i++) {
-		sprintf(response+i*8,"%.8x", sha2.Message_Digest[i]);
-	}
-	return response;
+    for(i = 0; i < 5 ; i++) {
+        sprintf(response+i*8,"%.8x", sha2.Message_Digest[i]);
+    }
+    return response;
 }
 
 struct json_t {
@@ -106,7 +115,7 @@ struct json_t js_elems[ELEMS_IN_EVENT + 1] = {
      { "longitude",     NULL },
      { "session_code",  NULL },
      { "time",          NULL },
-     { "tracker_code",  "sepeto" },
+     { "tracker_code",  TRACKER_CODE },
      { "version",       "1" },
      /* Except "mac" that must be last element */
      { "mac",           NULL },
@@ -117,12 +126,12 @@ void js_replace(char *name, char *value)
 {
      int i;
      for (i=0;i<ELEMS_IN_EVENT;i++) {
-	  if (0 == strcmp(name, js_elems[i].name)) {
-	       if (js_elems[i].value)
-		    free(js_elems[i].value);
-	       js_elems[i].value = value;
-	       break;
-	  }
+      if (0 == strcmp(name, js_elems[i].name)) {
+           if (js_elems[i].value)
+            free(js_elems[i].value);
+           js_elems[i].value = value;
+           break;
+      }
      }
 }
 
@@ -132,12 +141,12 @@ void calculate_mac(char *secret)
      int i;
      str[0] = 0;
      for (i=0;i<ELEMS_IN_EVENT;i++) {
-	  strcat(str, js_elems[i].name);
-	  strcat(str, ":");
-	  strcat(str, js_elems[i].value);
-	  strcat(str, "|");
+      strcat(str, js_elems[i].name);
+      strcat(str, ":");
+      strcat(str, js_elems[i].value);
+      strcat(str, "|");
      }
-	 js_elems[MAC_INDEX].value = sha1_hmac(secret, str);
+     js_elems[MAC_INDEX].value = sha1_hmac(secret, str);
      _DEBUG("Calculated MAC %s\r\nSTR: %s\r\n", js_elems[MAC_INDEX].value, str);
 }
 
@@ -148,13 +157,13 @@ char *js_tostr(void)
      str[0] = '{';
      str[1] = 0;
      for (i=0;i<ELEMS_IN_EVENT+1;i++) {
-	  if (i)
-	       strcat(str, ",");
-	  strcat(str, "\"");
-	  strcat(str, js_elems[i].name);
-	  strcat(str, "\": \"");
-	  strcat(str, js_elems[i].value);
-	  strcat(str, "\" ");
+      if (i)
+           strcat(str, ",");
+      strcat(str, "\"");
+      strcat(str, js_elems[i].name);
+      strcat(str, "\": \"");
+      strcat(str, js_elems[i].value);
+      strcat(str, "\" ");
      }
      strcat(str, "}");
      return str;
@@ -175,8 +184,8 @@ static void send_event(struct gps_data_t *gps)
                      gps->dt.year, gps->dt.month, gps->dt.day, gps->dt.hh, gps->dt.mm, gps->dt.sec);
      js_replace("time", strdup(buf));
      if (first_time) {
-	  js_replace("session_code", strdup(buf));
-	  first_time = 0;
+      js_replace("session_code", strdup(buf));
+      first_time = 0;
      }
      calculate_mac(SHARED_SECRET);
      json = js_tostr();
@@ -184,27 +193,33 @@ static void send_event(struct gps_data_t *gps)
      _DEBUG("Sending JSON event:\r\n%s\r\nlen = %d\r\n", json, strlen(json));
      response = http_post("http://dev-server.ruuvitracker.fi/api/v1-dev/events", json, "application/json");
      if (!response) {
-	  _DEBUG("HTTP POST failed\r\n");
+      _DEBUG("HTTP POST failed\r\n");
      } else {
-	  _DEBUG("HTTP response %d:\r\n%s\r\n", response->code, response->content);
-	  http_free(response);
+      _DEBUG("HTTP response %d:\r\n%s\r\n", response->code, response->content);
+      http_free(response);
      }
 }
 
 static WORKING_AREA(myWA, 4096);
 __attribute__((noreturn))
 static void tracker_th(void *args)
-{
-     struct gps_data_t gps;
-     (void)args;
-     while (TRUE) {
-	  chThdSleepMilliseconds(5000);
-	  /* Wait for fix */
-	  while (GPS_FIX_TYPE_NONE == gps_has_fix())
-	       chThdSleepMilliseconds(1000);
-	  gps = gps_get_data_nonblock();
-	  send_event(&gps);
-     }
+{ 
+    struct gps_data_t gps;
+    (void)args;
+    while (TRUE)
+    {
+        /* Wait for fix */
+        while (GPS_FIX_TYPE_NONE == gps_has_fix())
+        {
+            chThdSleepMilliseconds(1000);
+            tp_sync(4);
+        }
+        gps = gps_get_data_nonblock();
+        send_event(&gps);
+        tp_sync(5);
+        // Wait for next
+        chThdSleepMilliseconds(5000);
+    }
 }
 
 int main(void)
@@ -213,8 +228,10 @@ int main(void)
      int gsmreply=0;
      halInit();
      chSysInit();
+     tp_init();
      usb_serial_init();
-	 button_init();
+     button_init();
+     tp_sync(1);
      gsm_start();
      // Wait for PIN prompt if any
      while (gsmstate < 3) // STATE_ASK_PIN
@@ -225,17 +242,26 @@ int main(void)
      if (gsmstate == 3) // STATE_ASK_PIN
      {
         // Try to enter the pin once
-        gsmreply = gsm_cmd("AT+CPIN=SIM_PIN");
+        gsmreply = gsm_cmd("AT+CPIN="SIM_PIN);
         if (gsmreply != AT_OK)
         {
             _DEBUG("PIN unlock FAILED\r\n");
+            // Light the red led and go to infinite loop
+            palSetPad(GPIOB, GPIOB_LED2);
+            while (TRUE)
+            {
+                chThdSleepMilliseconds(1000);
+            }
         }
      }
+     tp_sync(2);
      gsm_set_apn(GPRS_APN);
      gps_start();
+     tp_sync(3);
      chThdCreateStatic(myWA, sizeof(myWA),
                           NORMALPRIO, (tfunc_t)tracker_th, NULL);
-     while (TRUE) {
-	  chThdSleepMilliseconds(1000);
+     while (TRUE)
+     {
+        chThdSleepMilliseconds(1000);
      }
 }
