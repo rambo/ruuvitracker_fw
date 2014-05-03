@@ -10,5 +10,8 @@ then
 fi 
 cp -f main.c main.c.backup && \
 cp -f tracker.c main.c && \
+touch main.c && \
 make
-cp -f main.c.backup main.c
+cp -f main.c.backup main.c 
+touch main.c
+
