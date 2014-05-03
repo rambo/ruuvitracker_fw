@@ -159,9 +159,14 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
         gsm_set_apn(argv[1]);
     } else if (0 == strcmp(argv[0], "start")) {
         gsm_start();
+    } else if (0 == strcmp(argv[0], "stop")) {
+        gsm_stop();
+    } else if (0 == strcmp(argv[0], "kill")) {
+        gsm_kill();
     } else if (0 == strcmp(argv[0], "cmd")) {
         gsm_cmd(argv[1]);
-        
+    } else {
+        chprintf(chp, "Unsupported subcommand %s\r\n", argv[0]);
     }
 }
 

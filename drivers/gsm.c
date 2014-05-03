@@ -627,14 +627,14 @@ void gsm_set_power_state(enum Power_mode mode)
         } else {                    /* Modem already on. Possibly warm reset */
             if (gsm.state == STATE_OFF) {   /* Responses of these will feed the state machine */
                 sleep_disable();
-                gsm_cmd("AT+CPIN?");        /* Check PIN */
-                gsm_cmd("AT+CFUN?");        /* Functionality mode */
-                gsm_cmd("AT+COPS?");        /* Registered to network */
-                gsm_cmd("AT+SAPBR=2,1"); /* Query GPRS status */
                 gsm_enable_hw_flow();
-                /* We should now know modem's real status */
             }
         }
+        gsm_cmd("AT+CPIN?");        /* Check PIN */
+        gsm_cmd("AT+CFUN?");        /* Functionality mode */
+        gsm_cmd("AT+COPS?");        /* Registered to network */
+        gsm_cmd("AT+SAPBR=2,1"); /* Query GPRS status */
+        /* We should now know modem's real status */
         break;
     case POWER_OFF:
         if (1 == status_pin) {
@@ -744,3 +744,23 @@ void gsm_start(void)
     gsm_set_power_state(POWER_ON);
 }
 
+void gsm_stop(void)
+{
+    _DEBUG("Telling worker to terminate\r\n");
+    chThdTerminate(worker);
+    _DEBUG("Telling serial semaphore to reset\r\n");
+    chBSemReset(&gsm.serial_sem, FALSE);
+    _DEBUG("Telling serial port itself to reset\r\n");
+    sdStop(&SD3);
+    _DEBUG("Waiting for worker to exit\r\n");
+    chThdWait(worker);
+    _DEBUG("Turning modem off\r\n");
+    gsm_set_power_state(POWER_OFF);
+}
+
+void gsm_kill(void)
+{
+    gsm_stop();
+    _DEBUG("Releasing modem power\r\n");
+    power_release(GSM);
+}
