@@ -1,11 +1,11 @@
 #ifndef GPRS_APN
-#define GPRS_APN "internet.saunalahti"
+#define GPRS_APN "internet"
 #endif
 #ifndef TRACKER_CODE
-#define TRACKER_CODE "sepeto"
+#define TRACKER_CODE "rambotest"
 #endif
 #ifndef SHARED_SECRET
-#define SHARED_SECRET "sepeto"
+#define SHARED_SECRET "f00bar"
 #endif
 #ifndef SIM_PIN
 #define SIM_PIN "1234"
@@ -255,6 +255,8 @@ int main(void)
         }
      }
      tp_sync(2);
+     // Disable netlight
+     gsm_uart_write("AT+CNETLIGHT=0\r\n");
      gsm_set_apn(GPRS_APN);
      gps_start();
      tp_sync(3);
