@@ -191,7 +191,9 @@ static void send_event(struct gps_data_t *gps)
      json = js_tostr();
 
      _DEBUG("Sending JSON event:\r\n%s\r\nlen = %d\r\n", json, strlen(json));
+     gsm_gprs_enable();
      response = http_post("http://dev-server.ruuvitracker.fi/api/v1-dev/events", json, "application/json");
+     gsm_gprs_disable();
      if (!response) {
       _DEBUG("HTTP POST failed\r\n");
      } else {
