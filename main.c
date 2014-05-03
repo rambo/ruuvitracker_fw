@@ -272,10 +272,10 @@ static const ShellConfig shell_cfg1 = {
 /*
  * Red LED blinker thread, times are in milliseconds.
  */
-static WORKING_AREA(waThread1, 128);
+static WORKING_AREA(waBlinkerThd, 128);
 
 __attribute__((noreturn))
-static void Thread1(void *arg)
+static void BlinkerThd(void *arg)
 {
     (void)arg;
     chRegSetThreadName("blinker");
@@ -333,7 +333,7 @@ int main(void)
     /*
      * Creates the blinker thread.
      */
-    chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, (tfunc_t)Thread1, NULL);
+    chThdCreateStatic(waBlinkerThd, sizeof(waBlinkerThd), NORMALPRIO, (tfunc_t)BlinkerThd, NULL);
     palClearPad(GPIOB, GPIOB_LED2);
 
     /*
