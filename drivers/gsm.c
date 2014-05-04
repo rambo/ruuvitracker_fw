@@ -756,6 +756,7 @@ void gsm_stop(void)
         sdStop(&SD3);
         _DEBUG("Waiting for worker to exit\r\n");
         chThdWait(worker);
+        worker = NULL;
     }
     _DEBUG("Turning modem off\r\n");
     gsm_set_power_state(POWER_OFF);
