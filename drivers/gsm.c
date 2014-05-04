@@ -746,14 +746,17 @@ void gsm_start(void)
 
 void gsm_stop(void)
 {
-    _DEBUG("Telling worker to terminate\r\n");
-    chThdTerminate(worker);
-    _DEBUG("Telling serial semaphore to reset\r\n");
-    chBSemReset(&gsm.serial_sem, FALSE);
-    _DEBUG("Telling serial port itself to reset\r\n");
-    sdStop(&SD3);
-    _DEBUG("Waiting for worker to exit\r\n");
-    chThdWait(worker);
+    if (worker)
+    {
+        _DEBUG("Telling worker to terminate\r\n");
+        chThdTerminate(worker);
+        _DEBUG("Telling serial semaphore to reset\r\n");
+        chBSemReset(&gsm.serial_sem, FALSE);
+        _DEBUG("Telling serial port itself to reset\r\n");
+        sdStop(&SD3);
+        _DEBUG("Waiting for worker to exit\r\n");
+        chThdWait(worker);
+    }
     _DEBUG("Turning modem off\r\n");
     gsm_set_power_state(POWER_OFF);
 }
