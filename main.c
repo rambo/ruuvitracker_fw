@@ -125,28 +125,38 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
     struct gps_data_t gps;
     char buf[255];
     (void)argc;
-    (void)argv;
-    chprintf(chp, "Enabling GPS module.\r\nPress enter to stop\r\n\r\n");
-    gps_start();
-    while (chnGetTimeout((BaseChannel *)chp, TIME_IMMEDIATE) == Q_TIMEOUT) {
-        chprintf(chp, "\x1B[2J-------[GPS Tracking,  press enter to stop]----\r\n");
-        if (GPS_FIX_TYPE_NONE != gps_has_fix()) {
-            gps = gps_get_data();
-            snprintf(buf, sizeof(buf),
-                     "lat: %f\r\n"
-                     "lon: %f\r\n"
-                     "satellites: %d\r\n"
-                     "time: %d-%d-%d %d:%d:%d\r\n",
-                     (float)gps.lat,(float)gps.lon, gps.n_satellites,
-                     gps.dt.year, gps.dt.month, gps.dt.day, gps.dt.hh, gps.dt.mm, gps.dt.sec);
-            chprintf(chp, buf);
-        } else {
-            chprintf(chp, "waiting for fix\r\n");
+
+    if (0 == strcmp(argv[0], "start")) {
+        gps_start();
+    } else if (0 == strcmp(argv[0], "stop")) {
+        gps_stop();
+    } else if (0 == strcmp(argv[0], "cmd")) {
+        gps_cmd(argv[1]);
+    } else if (0 == strcmp(argv[0], "test")) {
+        chprintf(chp, "Enabling GPS module.\r\nPress enter to stop\r\n\r\n");
+        gps_start();
+        while (chnGetTimeout((BaseChannel *)chp, TIME_IMMEDIATE) == Q_TIMEOUT) {
+            chprintf(chp, "\x1B[2J-------[GPS Tracking,  press enter to stop]----\r\n");
+            if (GPS_FIX_TYPE_NONE != gps_has_fix()) {
+                gps = gps_get_data();
+                snprintf(buf, sizeof(buf),
+                         "lat: %f\r\n"
+                         "lon: %f\r\n"
+                         "satellites: %d\r\n"
+                         "time: %d-%d-%d %d:%d:%d\r\n",
+                         (float)gps.lat,(float)gps.lon, gps.n_satellites,
+                         gps.dt.year, gps.dt.month, gps.dt.day, gps.dt.hh, gps.dt.mm, gps.dt.sec);
+                chprintf(chp, buf);
+            } else {
+                chprintf(chp, "waiting for fix\r\n");
+            }
+            chThdSleepMilliseconds(1000);
         }
-        chThdSleepMilliseconds(1000);
+        gps_stop();
+        chprintf(chp, "GPS stopped\r\n");
+    } else {
+        chprintf(chp, "Unsupported subcommand %s\r\n", argv[0]);
     }
-    gps_stop();
-    chprintf(chp, "GPS stopped\r\n");
 }
 
 static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
@@ -249,7 +259,7 @@ static const ShellCommand commands[] = {
     {"mem", cmd_mem},
     {"threads", cmd_threads},
     {"test", cmd_test},
-    {"gps_test", cmd_gps},
+    {"gps", cmd_gps},
     {"gsm", cmd_gsm},
     {"http", cmd_http},
     {"stop", cmd_stop},

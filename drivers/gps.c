@@ -126,7 +126,6 @@ static void gps_read_lines(void)
             continue;
         if ('\n' == c) { /* End of line */
             buf[i] = 0; /* Mark the end */
-            _DEBUG("got buffer %s\r\n", buf);
             gps_parse_line(buf);
             if (gps.msgs_received & (GPRMC|GPGGA|GPGSA)) /* All required messages */
                 timeout = 10; /* Read rest of lines but do not block anymore */
@@ -173,7 +172,19 @@ static void gps_parse_line(const char *line)
         } else if(strstr(line, "GSA")) {  // GPS DOP and active satellites
             parse_gpgsa(line);
             gps.msgs_received |= GPGSA;
+        } else if(strstr(line, "GSV")) {  // GNSS satellite in view
+            // TODO: parse
+        } else if(strstr(line, "VTG")) {  // Course over ground and ground speed
+            // TODO: parse
         }
+        else
+        {
+            _DEBUG("Unhandled response: %s\r\n", line);
+        }
+    }
+    else
+    {
+        _DEBUG("GPS Checksum failed: %s\r\n", line);
     }
 }
 
