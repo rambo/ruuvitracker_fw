@@ -126,6 +126,14 @@ void gps_uart_write(const char *str);
  */
 int gps_cmd(const char *cmd);
 
+/*
+TODO:
+add gps_set_update_interval(int ms); // PMTK300
+add gps_query_update_interval(); // PMTK400
+add gps_set_standby(boolean state); // PMTK161
+
+Add support for the ACK messages to gps_cmd
+*/ 
 
 #endif
 
