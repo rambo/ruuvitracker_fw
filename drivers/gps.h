@@ -76,6 +76,8 @@ struct gps_data_t {
 };
 
 
+#define GPS_CMD_LINE_END "\r\n"
+
 /******** API ***************/
 
 /**
@@ -107,6 +109,23 @@ struct gps_data_t gps_get_data_nonblock(void);
  * \return gps_data_t structure.
  */
 struct gps_data_t gps_get_data(void);
+
+/**
+ * Writes to the GPS uart
+ * @param char* string to write
+ */
+void gps_uart_write(const char *str);
+
+/**
+ * Sends a command to GPS and reads reply
+ *
+ * NOTE: reply checking is not yet implemented!!
+ *
+ * @param char* command to write, linebreaks are added automatically
+ * @return int status code
+ */
+int gps_cmd(const char *cmd);
+
 
 #endif
 

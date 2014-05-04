@@ -39,8 +39,7 @@
 #include "slre.h"
 #include "power.h"
 #include "chprintf.h"
-
-#define printf(...) while(0){}
+#include "debug.h"
 
 #define GPS_BUFF_SIZE	128
 #define GPRMC (1<<0)
@@ -127,6 +126,7 @@ static void gps_read_lines(void)
             continue;
         if ('\n' == c) { /* End of line */
             buf[i] = 0; /* Mark the end */
+            _DEBUG("got buffer %s\r\n", buf);
             gps_parse_line(buf);
             if (gps.msgs_received & (GPRMC|GPGGA|GPGSA)) /* All required messages */
                 timeout = 10; /* Read rest of lines but do not block anymore */
@@ -138,6 +138,21 @@ static void gps_read_lines(void)
             return; // Overflow
     }
 }
+
+void gps_uart_write(const char *str)
+{
+    while(*str)
+        sdPut(&SD2, *str++);
+}
+
+int gps_cmd(const char *cmd)
+{
+    // TODO: parse the replies
+    gps_uart_write(cmd);
+    gps_uart_write(GPS_CMD_LINE_END);
+    return 0;
+}
+
 
 /**
  * Parse received line.
@@ -169,7 +184,7 @@ static int calculate_gps_checksum(const char *data)
     char *checksum_index;
 
     if((checksum_index = strstr(data, "*")) == NULL) { // Find the beginning of checksum
-        //printf("GPS: error, cannot find the beginning of checksum from input line '%s'\n", data);
+        //_DEBUG("GPS: error, cannot find the beginning of checksum from input line '%s'\n", data);
         return FALSE;
     }
     sscanf(checksum_index + 1, "%02hhx", &received_checksum);
@@ -203,11 +218,11 @@ static int parse_gpgga(const char *line)
                        SLRE_INT, sizeof(n_sat), &n_sat,
                        SLRE_FLOAT, sizeof(altitude), &altitude);
     if(error != NULL) {
-        //printf("GPS: Error parsing GPGGA string '%s': %s\n", line, error);
+        //_DEBUG("GPS: Error parsing GPGGA string '%s': %s\n", line, error);
         return -1;
     } else {
         if(gps_data.n_satellites != n_sat) {
-            printf("GPS: Number of satellites in view: %d\r\n", n_sat);
+            _DEBUG("GPS: Number of satellites in view: %d\r\n", n_sat);
         }
         LOCK;
         gps_data.n_satellites = n_sat;
@@ -232,14 +247,14 @@ static int parse_gpgsa(const char *line)
 
     if(error != NULL) {
         // TODO: add a check for incomplete sentence
-        //printf("GPS: Error parsing GPGSA string '%s': %s\n", line error);
+        //_DEBUG("GPS: Error parsing GPGSA string '%s': %s\n", line error);
         return -1;
     } else {
         LOCK;
         switch(gps_fix_type) {
         case GPS_FIX_TYPE_NONE:
             if(gps_data.fix_type != GPS_FIX_TYPE_NONE)
-                printf("GPS: No GPS fix\r\n");
+                _DEBUG("GPS: No GPS fix\r\n");
             gps_data.fix_type = GPS_FIX_TYPE_NONE;
             gps.state = STATE_ON;
             gps_data.lat = 0.0;
@@ -248,18 +263,18 @@ static int parse_gpgsa(const char *line)
             break;
         case GPS_FIX_TYPE_2D:
             if(gps_data.fix_type != GPS_FIX_TYPE_2D)
-                printf("GPS: fix type 2D\r\n");
+                _DEBUG("GPS: fix type 2D\r\n");
             gps_data.fix_type = GPS_FIX_TYPE_2D;
             gps.state = STATE_HAS_2D_FIX;
             break;
         case GPS_FIX_TYPE_3D:
             if(gps_data.fix_type != GPS_FIX_TYPE_3D)
-                printf("GPS: fix type 3D\r\n");
+                _DEBUG("GPS: fix type 3D\r\n");
             gps_data.fix_type = GPS_FIX_TYPE_3D;
             gps.state = STATE_HAS_3D_FIX;
             break;
         default:
-            printf("GPS: Error, unknown GPS fix type!\r\n");
+            _DEBUG("GPS: Error, unknown GPS fix type!\r\n");
             return -1;
             break;
         }
@@ -269,9 +284,9 @@ static int parse_gpgsa(const char *line)
         gps_data.vdop = vdop;
         UNLOCK;
         /*
-        printf("GPS: pdop: %f\n", gps_data.pdop);
-        printf("GPS: hdop: %f\n", gps_data.hdop);
-        printf("GPS: vdop: %f\n", gps_data.vdop);
+        _DEBUG("GPS: pdop: %f\n", gps_data.pdop);
+        _DEBUG("GPS: hdop: %f\n", gps_data.hdop);
+        _DEBUG("GPS: vdop: %f\n", gps_data.vdop);
         */
         return 0;
     }
@@ -296,7 +311,7 @@ static int parse_gprmc(const char *line)
                        SLRE_STRING, sizeof(date), date);
 
     if(error != NULL) {
-        printf("GPS: Error parsing GPRMC string '%s': %s\n", line, error);
+        _DEBUG("GPS: Error parsing GPRMC string '%s': %s\n", line, error);
         return -1;
     } else {
         if(strcmp(status, "A") != 0) {
