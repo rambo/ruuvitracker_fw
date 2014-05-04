@@ -49,7 +49,8 @@
 /* Prototypes */
 static void gps_read_lines(void);
 static void gps_parse_line(const char *line);
-static int calculate_gps_checksum(const char *data);
+static char calculate_gps_checksum(const char *data);
+static int verify_gps_checksum(const char *data);
 static int parse_gpgga(const char *line);
 static int parse_gpgsa(const char *line);
 static int parse_gprmc(const char *line);
@@ -161,7 +162,7 @@ static void gps_parse_line(const char *line)
     if(strstr(line, "IIII")) {
         return;	// GPS module outputs a 'IIII' as the first string, skip it
     }
-    if(calculate_gps_checksum(line)) {
+    if(verify_gps_checksum(line)) {
         gps.serial_port_validated = TRUE;
         if(strstr(line, "RMC")) {         // Required minimum data
             parse_gprmc(line);
@@ -188,7 +189,20 @@ static void gps_parse_line(const char *line)
     }
 }
 
-static int calculate_gps_checksum(const char *data)
+static char calculate_gps_checksum(const char *data)
+{
+    char checksum = 0;
+    /* Loop through data, XORing each character to the next */
+    data = strstr(data, "$");
+    data++;
+    while(*data != '*') {
+        checksum ^= *data;
+        data++;
+    }
+    return checksum;
+}
+
+static int verify_gps_checksum(const char *data)
 {
     char checksum = 0;
     char received_checksum = 0;
@@ -203,13 +217,7 @@ static int calculate_gps_checksum(const char *data)
     	*(checksum_index + 2) = 0;
     	received_checksum = strtol(checksum_index, NULL, 16);*/
 
-    /* Loop through data, XORing each character to the next */
-    data = strstr(data, "$");
-    data++;
-    while(*data != '*') {
-        checksum ^= *data;
-        data++;
-    }
+    checksum = calculate_gps_checksum(data);
 
     if(checksum == received_checksum) {
         return TRUE;
