@@ -30,11 +30,15 @@
 
 #ifndef _GSM_H
 #define _GSM_H
+#include "ch.h"
 
 #define GSM_CMD_LINE_END "\r\n"
 
 enum Power_mode { POWER_OFF=0, POWER_ON, CUT_OFF };
 enum Reply { AT_OK=0, AT_FAIL, AT_ERROR, AT_TIMEOUT };
+
+// Event signal flag
+static EVENTSOURCE_DECL(gsm_evt_sms_arrived);
 
 
 /* C-API */

@@ -294,16 +294,51 @@ static void BlinkerThd(void *arg)
 {
     (void)arg;
     chRegSetThreadName("blinker");
-    while (TRUE) {
-        systime_t time;
-
+    systime_t time;
+    /** 
+     * Remove the noreturn attribute if using this check
+    while (!chThdShouldTerminate())
+    */
+    while (TRUE)
+    {
         time = SDU.config->usbp->state == USB_ACTIVE ? 250 : 500;
         palClearPad(GPIOB, GPIOB_LED1);
         chThdSleepMilliseconds(time);
         palSetPad(GPIOB, GPIOB_LED1);
         chThdSleepMilliseconds(time);
     }
+    //chThdExit(0);
 }
+
+/**
+ * Incoming SMS notifier
+ */
+static WORKING_AREA(wa_sms_thd, 128);
+
+__attribute__((noreturn))
+static void sms_thd(void *arg)
+{
+    (void)arg;
+    chRegSetThreadName("sms_thd");
+    EventListener smslisten;
+    int sms_index;
+    chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 1);
+    /** 
+     * Remove the noreturn attribute if using this check
+    while (!chThdShouldTerminate())
+    */
+    while (TRUE)
+    {
+        chEvtWaitOne(1);
+        chSysLock();
+        sms_index = chEvtGetAndClearFlagsI(&smslisten);
+        chSysUnlock();
+        _DEBUG("New SMS in index %d\r\n", sms_index);
+    }
+    chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);
+    //chThdExit(0);
+}
+
 
 /*
  * Application entry point.
@@ -350,6 +385,10 @@ int main(void)
      */
     chThdCreateStatic(waBlinkerThd, sizeof(waBlinkerThd), NORMALPRIO, (tfunc_t)BlinkerThd, NULL);
     palClearPad(GPIOB, GPIOB_LED2);
+
+    // SMS notifier thread
+    chThdCreateStatic(wa_sms_thd, sizeof(wa_sms_thd), NORMALPRIO, (tfunc_t)sms_thd, NULL);
+
 
     /*
      * Normal main() thread activity, in this demo it does nothing except

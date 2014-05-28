@@ -265,7 +265,7 @@ static void call_ended(char *line)
 static void parse_sms_in(char *line)
 {
     if (1 == sscanf(line, "+CMTI: \"SM\",%d", &gsm.last_sms_index)) {
-        //TODO: implement this
+        chEvtBroadcastFlags(&gsm_evt_sms_arrived, gsm.last_sms_index);
     }
 }
 
