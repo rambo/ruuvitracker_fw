@@ -265,9 +265,14 @@ static void call_ended(char *line)
 static void parse_sms_in(char *line)
 {
     D_ENTER();
-    if (1 == sscanf(line, "+CMTI: \"SM\",%d", &gsm.last_sms_index)) {
+    if (1 == sscanf(line, "+CMTI: \"SM\",%d", &gsm.last_sms_index))
+    {
         _DEBUG("Parsed index %d\r\n", gsm.last_sms_index);
         chEvtBroadcastFlags(&gsm_evt_sms_arrived, gsm.last_sms_index);
+    }
+    else
+    {
+        _DEBUG("FAILED to parse SMS index\r\n");
     }
     D_EXIT();
 }
