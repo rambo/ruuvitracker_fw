@@ -159,8 +159,36 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
     }
 }
 
+/**
+ * Incoming SMS notifier
+ */
+static WORKING_AREA(wa_sms_thd, 128);
+
+static void sms_thd(void *arg)
+{
+    (void)arg;
+    chRegSetThreadName("sms_thd");
+    EventListener smslisten;
+    int sms_index;
+    chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 1);
+    while (!chThdShouldTerminate())
+    {
+        _DEBUG("Waiting for SMS event\r\n");
+        chEvtWaitOne(1);
+        _DEBUG("SMS event received\r\n");
+        chSysLock();
+        sms_index = chEvtGetAndClearFlagsI(&smslisten);
+        chSysUnlock();
+        _DEBUG("New SMS in index %d\r\n", sms_index);
+    }
+    chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);
+    chThdExit(0);
+}
+
+
 static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
 {
+    static Thread *smsworker = NULL;
     if (argc < 1) {
         chprintf(chp, "Usage: gsm [apn <apn_name>] | [start] | [cmd <str>]\r\n");
         return;
@@ -168,9 +196,15 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
     if (0 == strcmp(argv[0], "apn")) {
         gsm_set_apn(argv[1]);
     } else if (0 == strcmp(argv[0], "start")) {
+        // SMS notifier thread
+        smsworker = chThdCreateStatic(wa_sms_thd, sizeof(wa_sms_thd), NORMALPRIO, (tfunc_t)sms_thd, NULL);
         gsm_start();
     } else if (0 == strcmp(argv[0], "stop")) {
         gsm_stop();
+        chThdTerminate(smsworker);
+        chThdWait(smsworker);
+        chThdRelease(smsworker); 
+        smsworker = NULL;
     } else if (0 == strcmp(argv[0], "kill")) {
         gsm_kill();
     } else if (0 == strcmp(argv[0], "cmd")) {
@@ -310,34 +344,6 @@ static void BlinkerThd(void *arg)
     //chThdExit(0);
 }
 
-/**
- * Incoming SMS notifier
- */
-static WORKING_AREA(wa_sms_thd, 128);
-
-__attribute__((noreturn))
-static void sms_thd(void *arg)
-{
-    (void)arg;
-    chRegSetThreadName("sms_thd");
-    EventListener smslisten;
-    int sms_index;
-    chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 1);
-    /** 
-     * Remove the noreturn attribute if using this check
-    while (!chThdShouldTerminate())
-    */
-    while (TRUE)
-    {
-        chEvtWaitOne(1);
-        chSysLock();
-        sms_index = chEvtGetAndClearFlagsI(&smslisten);
-        chSysUnlock();
-        _DEBUG("New SMS in index %d\r\n", sms_index);
-    }
-    chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);
-    //chThdExit(0);
-}
 
 
 /*
@@ -386,8 +392,6 @@ int main(void)
     chThdCreateStatic(waBlinkerThd, sizeof(waBlinkerThd), NORMALPRIO, (tfunc_t)BlinkerThd, NULL);
     palClearPad(GPIOB, GPIOB_LED2);
 
-    // SMS notifier thread
-    chThdCreateStatic(wa_sms_thd, sizeof(wa_sms_thd), NORMALPRIO, (tfunc_t)sms_thd, NULL);
 
 
     /*
