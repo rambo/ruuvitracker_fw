@@ -174,7 +174,8 @@ static void sms_thd(void *arg)
     while (!chThdShouldTerminate())
     {
         _DEBUG("Waiting for SMS event\r\n");
-        chEvtWaitOne(1);
+        //chEvtWaitOne(1);
+        chEvtWaitOne(ALL_EVENTS);
         _DEBUG("SMS event received\r\n");
         chSysLock();
         sms_index = chEvtGetAndClearFlagsI(&smslisten);
