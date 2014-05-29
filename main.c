@@ -51,7 +51,7 @@ static i2cflags_t i2c_errors = 0;
 /**
  * Backup domain data
  */
-#define BACKUP_CONFIG_VERSION (0xdeadbeef + 0)
+#define BACKUP_CONFIG_VERSION (0xdeadbeef + 0) // Increment the + part each time the config struct changes
 struct backup_domain_data_t
 {
     char apn[50];
