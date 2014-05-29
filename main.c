@@ -162,7 +162,7 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
 /**
  * Incoming SMS notifier
  */
-static WORKING_AREA(wa_sms_thd, 1024);
+static WORKING_AREA(wa_sms_thd, 2048);
 
 static void sms_thd(void *arg)
 {

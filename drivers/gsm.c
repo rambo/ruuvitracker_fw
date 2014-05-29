@@ -380,6 +380,7 @@ int gsm_read_sms(int index, gsm_sms_t *message)
     // Just so our debug gets output first
     chThdSleepMilliseconds(50);
     // There's a full empty like and OK to mark end of message, so look for anything ending in two nrbr sequences with a following OK
+    // PDU mode might be a better idea afterall, though this match will handle a message that has only "OK" as content it will probably choke on "OK\r\nmessage continues"
 	stat = gsm_wait_cpy("." GSM_CMD_LINE_END GSM_CMD_LINE_END "OK", 5000, tmp, sizeof(tmp)-1);
     if (stat != AT_OK)
     {
@@ -398,6 +399,8 @@ int gsm_read_sms(int index, gsm_sms_t *message)
     {
         // three nlbrs and something mysterious (maybe a lone CR)
         strncpy(message->msg, tmp, tmp_strlen-7);
+        // And make sure the string is terminated
+        message->msg[tmp_strlen-7] = 0x0;
     }
     _DEBUG("message->msg strlen=%d\r\n", strlen(message->msg));
 
