@@ -1,16 +1,3 @@
-#ifndef GPRS_APN
-#define GPRS_APN "internet"
-#endif
-#ifndef TRACKER_CODE
-#define TRACKER_CODE "rambotest"
-#endif
-#ifndef SHARED_SECRET
-#define SHARED_SECRET "f00bar"
-#endif
-#ifndef SIM_PIN
-#define SIM_PIN "1234"
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -36,6 +23,23 @@
 #define BLOCKSIZE   64
 #define IPAD 0x36
 #define OPAD 0x5C
+
+/**
+ * Backup domain data
+ */
+#define BACKUP_CONFIG_VERSION (0xfeeddeed + 0) // Increment the + part each time the config struct changes
+struct backup_domain_data_t
+{
+    char apn[50];
+    char pin[10];
+    char trackerid[50];
+    char sharedsecret[50];
+    uint32_t config_version;
+}; struct backup_domain_data_t * const backup_domain_data = (struct backup_domain_data_t *)BKPSRAM_BASE;
+static bool backup_domain_data_is_sane(void)
+{
+    return backup_domain_data->config_version == BACKUP_CONFIG_VERSION;
+}
 
 
 /* Helper to get hash from library */
@@ -116,7 +120,7 @@ struct json_t js_elems[ELEMS_IN_EVENT + 1] = {
      { "longitude",     NULL },
      { "session_code",  NULL },
      { "time",          NULL },
-     { "tracker_code",  TRACKER_CODE },
+     { "tracker_code",  NULL },
      { "version",       "1" },
      /* Except "mac" that must be last element */
      { "mac",           NULL },
@@ -184,11 +188,12 @@ static void send_event(struct gps_data_t *gps)
      sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.000Z",
                      gps->dt.year, gps->dt.month, gps->dt.day, gps->dt.hh, gps->dt.mm, gps->dt.sec);
      js_replace("time", strdup(buf));
+     js_replace("tracker_code", backup_domain_data->trackerid);
      if (first_time) {
       js_replace("session_code", strdup(buf));
       first_time = 0;
      }
-     calculate_mac(SHARED_SECRET);
+     calculate_mac(backup_domain_data->sharedsecret);
      json = js_tostr();
 
      _DEBUG("Sending JSON event:\r\n%s\r\nlen = %d\r\n", json, strlen(json));
@@ -207,11 +212,47 @@ static WORKING_AREA(myWA, 4096);
 __attribute__((noreturn))
 static void tracker_th(void *args)
 { 
-    struct gps_data_t gps;
     (void)args;
+    struct gps_data_t gps;
+    int gsmstate=0;
+    int gsmreply=0;
+
+     tp_sync(1);
+     gsm_start();
+     // Wait for PIN prompt if any
+     while (gsmstate < 3) // STATE_ASK_PIN
+     {
+        gsmstate = gsm_get_state();
+        chThdSleepMilliseconds(100);
+     }
+     if (gsmstate == 3) // STATE_ASK_PIN
+     {
+        // Try to enter the pin once
+        gsmreply = gsm_cmd_fmt("AT+CPIN=%s", backup_domain_data->pin);
+        if (gsmreply != AT_OK)
+        {
+            // TODO: Setup a global "config error" variable and mask the pin_error from there.
+            _DEBUG("PIN unlock FAILED\r\n");
+            // Light the red led and go to infinite loop
+            palSetPad(GPIOB, GPIOB_LED2);
+            while (TRUE)
+            {
+                chThdSleepMilliseconds(1000);
+            }
+        }
+     }
+     tp_sync(2);
+     // Disable netlight
+     gsm_uart_write("AT+CNETLIGHT=0\r\n");
+     gsm_set_apn(backup_domain_data->apn);
+     gps_start();
+     tp_sync(3);
+
+    // TODO: set the GPS update interval on module level
     while (TRUE)
     {
         /* Wait for fix */
+        // TODO: Use the event flag instead of polling
         while (GPS_FIX_TYPE_NONE == gps_has_fix())
         {
             chThdSleepMilliseconds(1000);
@@ -225,48 +266,139 @@ static void tracker_th(void *args)
     }
 }
 
+
+/**
+ * Set the config variables
+ */
+static void cmd_apn(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
+        chprintf(chp, "APN is '%s'\r\n", backup_domain_data->apn);
+    }
+    else
+    {
+        strncpy(backup_domain_data->apn, argv[0], sizeof(backup_domain_data->apn));
+        // Set the signature (maybe someday it's a checksum)
+        backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+    }
+}
+
+static void cmd_pin(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
+        // TODO: Replace with a message saying reading back the pin is not allowed
+        chprintf(chp, "PIN is '%s'\r\n", backup_domain_data->pin);
+    }
+    else
+    {
+        strncpy(backup_domain_data->pin, argv[0], sizeof(backup_domain_data->pin));
+        // Set the signature (maybe someday it's a checksum)
+        backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+    }
+}
+
+static void cmd_trackerid(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
+        // TODO: Replace with a message saying reading back the pin is not allowed
+        chprintf(chp, "Tracker-id is '%s'\r\n", backup_domain_data->trackerid);
+    }
+    else
+    {
+        strncpy(backup_domain_data->trackerid, argv[0], sizeof(backup_domain_data->trackerid));
+        // Set the signature (maybe someday it's a checksum)
+        backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+    }
+}
+
+static void cmd_sharedsecret(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
+        // TODO: Replace with a message saying reading back the secret is not allowed
+        chprintf(chp, "Shared secret is '%s'\r\n", backup_domain_data->sharedsecret);
+    }
+    else
+    {
+        strncpy(backup_domain_data->sharedsecret, argv[0], sizeof(backup_domain_data->sharedsecret));
+        // Set the signature (maybe someday it's a checksum)
+        backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+    }
+}
+
+
+#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
+
+static const ShellCommand commands[] = {
+    {"apn", cmd_apn},
+    {"pin", cmd_pin},
+    {"trackerid", cmd_trackerid},
+    {"secret", cmd_sharedsecret},
+    {NULL, NULL}
+};
+
+static const ShellConfig shell_cfg1 = {
+    (BaseSequentialStream *)&SDU,
+    commands
+};
+
+
 int main(void)
 {
-     int gsmstate=0;
-     int gsmreply=0;
-     halInit();
-     chSysInit();
-     tp_init();
-     usb_serial_init();
-     button_init();
-     tp_sync(1);
-     gsm_start();
-     // Wait for PIN prompt if any
-     while (gsmstate < 3) // STATE_ASK_PIN
-     {
-        gsmstate = gsm_get_state();
-        chThdSleepMilliseconds(100);
-     }
-     if (gsmstate == 3) // STATE_ASK_PIN
-     {
-        // Try to enter the pin once
-        gsmreply = gsm_cmd("AT+CPIN="SIM_PIN);
-        if (gsmreply != AT_OK)
-        {
-            _DEBUG("PIN unlock FAILED\r\n");
-            // Light the red led and go to infinite loop
-            palSetPad(GPIOB, GPIOB_LED2);
-            while (TRUE)
-            {
-                chThdSleepMilliseconds(1000);
-            }
+    Thread *shelltp = NULL;
+
+    halInit();
+    chSysInit();
+    tp_init();
+    usb_serial_init();
+    button_init();
+
+    shellInit();
+
+    // The tracker thread, this will initialized gps, gsm etc
+    if (backup_domain_data_is_sane())
+    {
+        chThdCreateStatic(myWA, sizeof(myWA), NORMALPRIO, (tfunc_t)tracker_th, NULL);
+    }
+    else
+    {
+        // Turn the red LED on
+        palSetPad(GPIOB, GPIOB_LED1);
+    }
+
+    /*
+     * Mainloop keeps just a shell for us for configuring
+     */
+    while (TRUE) {
+        if (!shelltp && (SDU.config->usbp->state == USB_ACTIVE)) {
+            shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+        } else if (chThdTerminated(shelltp)) {
+            chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
+            shelltp = NULL;           /* Triggers spawning of a new shell.        */
         }
-     }
-     tp_sync(2);
-     // Disable netlight
-     gsm_uart_write("AT+CNETLIGHT=0\r\n");
-     gsm_set_apn(GPRS_APN);
-     gps_start();
-     tp_sync(3);
-     chThdCreateStatic(myWA, sizeof(myWA),
-                          NORMALPRIO, (tfunc_t)tracker_th, NULL);
-     while (TRUE)
-     {
         chThdSleepMilliseconds(1000);
-     }
+    }
 }
