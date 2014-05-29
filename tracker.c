@@ -395,9 +395,18 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
 {
     if (argc < 1)
     {
-        chprintf(chp, "Usage: gps AT_COMMAND\r\n");
+        chprintf(chp, "Usage: gsm AT_COMMAND\r\n");
     }
     gsm_cmd(argv[0]);
+}
+
+static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        chprintf(chp, "Usage: gps AT_COMMAND\r\n");
+    }
+    gps_cmd(argv[0]);
 }
 
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
@@ -409,6 +418,7 @@ static const ShellCommand commands[] = {
     {"secret", cmd_sharedsecret},
     {"interval", cmd_interval},
     {"gsm", cmd_gsm},
+    {"gsp", cmd_gps},
     {NULL, NULL}
 };
 
