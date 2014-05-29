@@ -37,8 +37,18 @@
 enum Power_mode { POWER_OFF=0, POWER_ON, CUT_OFF };
 enum Reply { AT_OK=0, AT_FAIL, AT_ERROR, AT_TIMEOUT };
 
+typedef struct 
+{
+    char number[100]; // PONDER: this is probably way too large
+    char msg[161];
+    char time[21]; // When receiving
+    int  mr; // Message-reference (when sending)
+} gsm_sms_t;
+
+extern gsm_sms_t gsm_sms_default_container;
+
 // Event signal flag
-static EVENTSOURCE_DECL(gsm_evt_sms_arrived);
+extern EventSource gsm_evt_sms_arrived;
 
 
 /* C-API */
@@ -59,7 +69,7 @@ void gsm_stop(void);                                                     /* Stop
 void gsm_kill(void);                                                     /* Stop the modem, taking all power out */
 int gsm_get_state(void);                                                 /* Read state value */
 int gsm_delete_sms(int index);                                           /* Delete SMS in index */
-int gsm_send_sms(char* number, char* msg);                               /* Send SMS message */
+int gsm_send_sms(gsm_sms_t *message);                                    /* Send SMS message */
 
 
 /* Internals */

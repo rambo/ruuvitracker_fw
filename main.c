@@ -196,6 +196,7 @@ static void sms_thd(void *arg)
 static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
 {
     static Thread *smsworker = NULL;
+    int i;
     if (argc < 1) {
         chprintf(chp, "Usage: gsm [apn <apn_name>] | [start] | [cmd <str>]\r\n");
         return;
@@ -215,7 +216,18 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
     } else if (0 == strcmp(argv[0], "smsdel")) {
         gsm_delete_sms(atoi(argv[1]));
     } else if (0 == strcmp(argv[0], "smssend")) {
-        gsm_send_sms(argv[1], argv[2]);
+        strncpy(gsm_sms_default_container.number, argv[1], sizeof(gsm_sms_default_container.number)-1);
+        gsm_sms_default_container.msg[0] = 0x0;
+        gsm_sms_default_container.mr = 0;
+        for (i=2; i<argc; i++)
+        {
+            strcat(gsm_sms_default_container.msg, argv[i]);
+            if (i<(argc-1))
+            {
+                strcat(gsm_sms_default_container.msg, " ");
+            }
+        }
+        gsm_send_sms(&gsm_sms_default_container);
     } else if (0 == strcmp(argv[0], "kill")) {
         gsm_kill();
     } else if (0 == strcmp(argv[0], "cmd")) {

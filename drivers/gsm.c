@@ -81,6 +81,9 @@ enum GSM_FLAGS {
     TCP_ENABLED     = 0x40,
 };
 
+gsm_sms_t gsm_sms_default_container;
+EVENTSOURCE_DECL(gsm_evt_sms_arrived);
+
 /* Modem Status */
 struct gsm_modem {
     enum Power_mode power_mode;
@@ -284,7 +287,7 @@ int gsm_delete_sms(int index)
 }
 
 static const char ctrlZ[] = {26, 0};
-int gsm_send_sms(char* number, char* msg)
+int gsm_send_sms(gsm_sms_t *message)
 {
     int stat;
     int was_locked;
@@ -300,17 +303,20 @@ int gsm_send_sms(char* number, char* msg)
 
     char cmd[256];
     // Here we must send on CR, *no LF*
-    snprintf(cmd, 256, "AT+CMGS=\"%s\"\r", number);
+    snprintf(cmd, 255, "AT+CMGS=\"%s\"\r", message->number);
     gsm_uart_write(cmd);
-    _DEBUG("Sent %s, waiting for '>'", cmd);
+    _DEBUG("Sent %s as CMD, waiting for '>'\r\n", cmd);
+    // Just so our debug gets output first
+    chThdSleepMilliseconds(50);
     stat = gsm_wait(">", 5000);
     if (stat != AT_OK)
     {
         _DEBUG("Failed when waiting for > after sending number, stat=%s\r\n", stat);
         goto CMD_ERROR;
     }
-    gsm_uart_write(msg);
+    gsm_uart_write(message->msg);
     
+    // TODO: wait for +CMGS:<mr> (and parse to message->mr) and then OK.
 	stat = gsm_cmd_wait(ctrlZ, "OK", 5000);		/* CTRL-Z ends message. Wait for 'OK' */
     if (stat != AT_OK)
     {
