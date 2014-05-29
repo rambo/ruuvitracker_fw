@@ -170,16 +170,22 @@ static void sms_thd(void *arg)
     chRegSetThreadName("sms_thd");
     EventListener smslisten;
     int sms_index;
-    chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 1);
+    /*
+     * Register the event listener with the event source.  This is the only
+     * event this thread will be waiting for, so we choose the lowest eid.
+     * However, the eid can be anything from 0 - 31.
+     */
+    chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 0);
     while (!chThdShouldTerminate())
     {
         _DEBUG("Waiting for SMS event\r\n");
-        //chEvtWaitOne(1);
-        chEvtWaitOne(ALL_EVENTS);
+        /*
+         * We can now wait for our event.  Since we will only be waiting for
+         * a single event, we should use chEvtWaitOne()
+         */
+        chEvtWaitOne(EVENT_MASK(0));
         _DEBUG("SMS event received\r\n");
-        chSysLock();
-        sms_index = chEvtGetAndClearFlagsI(&smslisten);
-        chSysUnlock();
+        sms_index = chEvtGetAndClearFlags(&smslisten);
         _DEBUG("New SMS in index %d\r\n", sms_index);
     }
     chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);

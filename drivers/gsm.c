@@ -268,8 +268,7 @@ static void parse_sms_in(char *line)
     if (1 == sscanf(line, "+CMTI: \"SM\",%d", &gsm.last_sms_index))
     {
         _DEBUG("Parsed index %d\r\n", gsm.last_sms_index);
-        //chEvtBroadcastFlags(&gsm_evt_sms_arrived, gsm.last_sms_index);
-        chEvtBroadcast(&gsm_evt_sms_arrived);
+        chEvtBroadcastFlags(&gsm_evt_sms_arrived, gsm.last_sms_index);
     }
     else
     {
