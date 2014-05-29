@@ -48,12 +48,67 @@ static const I2CConfig i2cfg1 = {
 static i2cflags_t i2c_errors = 0;
 
 
+/**
+ * Backup domain data
+ */
+struct backup_domain_data_t
+{
+    char apn[50];
+    char pin[10];
+}; struct backup_domain_data_t * const backup_domain_data = (struct backup_domain_data_t *)BKPSRAM_BASE;
+
+
+
 /*===========================================================================*/
 /* Command line related.                                                     */
 /*===========================================================================*/
 
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
 #define TEST_WA_SIZE    THD_WA_SIZE(256)
+
+static void cmd_bkp(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 2) {
+        chprintf(chp, "Usage: bkp set member value | bkp get member\r\n");
+        return;
+    }
+    if (0 == strcmp(argv[0], "get"))
+    {
+        if (0 == strcmp(argv[1], "apn"))
+        {
+            chprintf(chp, "backup_domain_data->%s=%s\r\n", argv[1], backup_domain_data->apn);
+        }
+        else if (0 == strcmp(argv[1], "pin"))
+        {
+            chprintf(chp, "backup_domain_data->%s=%s\r\n", argv[1], backup_domain_data->pin);
+        }
+        else
+        {
+            chprintf(chp, "Unsupported member %s\r\n", argv[1]);
+        }
+    }
+    else if (0 == strcmp(argv[0], "set"))
+    {
+        if (0 == strcmp(argv[1], "apn"))
+        {
+            strncpy(backup_domain_data->apn, argv[2], sizeof(backup_domain_data->apn));
+        }
+        else if (0 == strcmp(argv[1], "pin"))
+        {
+            strncpy(backup_domain_data->pin, argv[2], sizeof(backup_domain_data->pin));
+        }
+        else
+        {
+            chprintf(chp, "Unsupported member %s\r\n", argv[1]);
+        }
+    }
+    else
+    {
+        chprintf(chp, "Unsupported subcommand %s\r\n", argv[0]);
+    }
+    
+}
+
 
 static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[])
 {
@@ -355,6 +410,7 @@ static const ShellCommand commands[] = {
     {"ls", sdcard_cmd_ls},
     {"tp_sync", cmd_tp_sync},
     {"tp_set_syncpin", cmd_tp_set_syncpin},
+    {"bkp", cmd_bkp},
     {NULL, NULL}
 };
 
