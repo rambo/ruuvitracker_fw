@@ -25,5 +25,8 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]);
  */
 void cmd_wakeup(BaseSequentialStream *chp, int argc, char *argv[]);
 
+/**
+ * PONDER: add a setup routine that would get the PPS output from GPS for RTC_REFIN ?
+ */
 
 #endif

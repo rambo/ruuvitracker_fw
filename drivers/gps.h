@@ -129,7 +129,7 @@ void gps_uart_write(const char *str);
 int gps_cmd(const char *cmd);
 
 /**
- * Convert GPS datetime to time.h format
+ * Convert GPS datetime to time.h format (usable for example with rtcSetTimeTm)
  */
 void gps_datetime2tm(struct tm *timp, gps_datetime *gpstime);
 
