@@ -58,6 +58,7 @@ void gsm_start(void);                                                    /* Star
 void gsm_stop(void);                                                     /* Stop the modem, leaving power domain on */
 void gsm_kill(void);                                                     /* Stop the modem, taking all power out */
 int gsm_get_state(void);                                                 /* Read state value */
+int gsm_delete_sms(int index);                                           /* Delete SMS in index */
 
 
 /* Internals */

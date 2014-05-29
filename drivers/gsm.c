@@ -277,6 +277,13 @@ static void parse_sms_in(char *line)
     D_EXIT();
 }
 
+int gsm_delete_sms(int index)
+{
+    // TODO: Make sure the modem is in correct state before attempting SIM operations
+    return gsm_cmd_wait_fmt("OK", 500,"AT+CMGD=%d", index);
+}
+
+
 static void parse_network(char *line)
 {
     char network[64];
