@@ -195,7 +195,7 @@ static void sms_thd(void *arg)
             // The read func will report the errors for now.
             continue;
         }
-        _DEBUG("Message from %s is: %s", gsm_sms_default_container.number, gsm_sms_default_container.msg);
+        _DEBUG("Message from '%s' is: '%s'", gsm_sms_default_container.number, gsm_sms_default_container.msg);
     }
     chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);
     chThdExit(0);
@@ -229,7 +229,7 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
             // The read func will report the errors for now.
             return;
         }
-        chprintf(chp, "Message from %s is: %s", gsm_sms_default_container.number, gsm_sms_default_container.msg);
+        chprintf(chp, "Message from '%s' is: '%s'", gsm_sms_default_container.number, gsm_sms_default_container.msg);
     } else if (0 == strcmp(argv[0], "smsdel")) {
         gsm_delete_sms(atoi(argv[1]));
     } else if (0 == strcmp(argv[0], "smssend")) {

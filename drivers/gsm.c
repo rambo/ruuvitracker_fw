@@ -336,6 +336,7 @@ CMD_ERROR:
 
 int gsm_read_sms(int index, gsm_sms_t *message)
 {
+    uint16_t tmp_strlen;
     char tmp[256];
     int stat;
 	const char *slre_err;
@@ -378,12 +379,27 @@ int gsm_read_sms(int index, gsm_sms_t *message)
 	_DEBUG("Starting to read the message body\r\n");
     // Just so our debug gets output first
     chThdSleepMilliseconds(50);
-	stat = gsm_wait_cpy(GSM_CMD_LINE_END "OK", 5000, message->msg, sizeof(message->msg)-1);
+    // There's a full empty like and OK to mark end of message, so look for anything ending in two nrbr sequences with a following OK
+	stat = gsm_wait_cpy("." GSM_CMD_LINE_END GSM_CMD_LINE_END "OK", 5000, tmp, sizeof(tmp)-1);
     if (stat != AT_OK)
     {
         _DEBUG("Failed to read message contents gsm_wait_cpy returned %d\r\n", stat);
         goto CMD_ERROR;
     }
+    // Strip the last nlbrs
+    tmp_strlen = strlen(tmp);
+    _DEBUG("tmp_strlen=%d\r\n", tmp_strlen);
+    if (tmp_strlen >= sizeof(message->msg))
+    {
+        _DEBUG("tmp is too long, limiting lenght\r\n");
+        strncpy(message->msg, tmp, sizeof(message->msg)-1);
+    }
+    else
+    {
+        // three nlbrs and something mysterious (maybe a lone CR)
+        strncpy(message->msg, tmp, tmp_strlen-7);
+    }
+    _DEBUG("message->msg strlen=%d\r\n", strlen(message->msg));
 
     if (!was_locked)
         gsm_release_serial_port();
