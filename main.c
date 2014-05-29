@@ -162,7 +162,7 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
 /**
  * Incoming SMS notifier
  */
-static WORKING_AREA(wa_sms_thd, 128);
+static WORKING_AREA(wa_sms_thd, 1024);
 
 static void sms_thd(void *arg)
 {
@@ -170,6 +170,7 @@ static void sms_thd(void *arg)
     chRegSetThreadName("sms_thd");
     EventListener smslisten;
     int sms_index;
+    int stat;
     /*
      * Register the event listener with the event source.  This is the only
      * event this thread will be waiting for, so we choose the lowest eid.
@@ -187,6 +188,14 @@ static void sms_thd(void *arg)
         _DEBUG("SMS event received\r\n");
         sms_index = chEvtGetAndClearFlags(&smslisten);
         _DEBUG("New SMS in index %d\r\n", sms_index);
+        chThdSleepMilliseconds(100);
+        stat = gsm_read_sms(sms_index, &gsm_sms_default_container);
+        if (stat != AT_OK)
+        {
+            // The read func will report the errors for now.
+            continue;
+        }
+        _DEBUG("Message from %s is: %s", gsm_sms_default_container.number, gsm_sms_default_container.msg);
     }
     chEvtUnregister(&gsm_evt_sms_arrived, &smslisten);
     chThdExit(0);
@@ -213,6 +222,14 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
         chThdWait(smsworker);
         chThdRelease(smsworker); 
         smsworker = NULL;
+    } else if (0 == strcmp(argv[0], "smsread")) {
+        i = gsm_read_sms(atoi(argv[1]), &gsm_sms_default_container);
+        if (i != AT_OK)
+        {
+            // The read func will report the errors for now.
+            return;
+        }
+        chprintf(chp, "Message from %s is: %s", gsm_sms_default_container.number, gsm_sms_default_container.msg);
     } else if (0 == strcmp(argv[0], "smsdel")) {
         gsm_delete_sms(atoi(argv[1]));
     } else if (0 == strcmp(argv[0], "smssend")) {

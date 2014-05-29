@@ -141,7 +141,7 @@ static Message urc_messages[] = {
     /* Unsolicited Result Codes (URC messages) */
     { "RDY",                    .next_state=STATE_BOOTING },
     { "NORMAL POWER DOWN",      .next_state=STATE_OFF },
-    { "^\\+CPIN: NOT INSERTED", .next_state=STATE_ERROR,        .func = no_sim },
+    { "\\+CPIN: NOT INSERTED",  .next_state=STATE_ERROR,        .func = no_sim },
     { "\\+CPIN: READY",         .next_state=STATE_WAIT_NETWORK, .func = sim_inserted },
     { "\\+CPIN: SIM PIN",       .next_state=STATE_ASK_PIN,      .func = sim_inserted },
     { "\\+CFUN:",                                               .func = parse_cfun },
@@ -316,7 +316,7 @@ int gsm_send_sms(gsm_sms_t *message)
     }
     gsm_uart_write(message->msg);
     
-    // TODO: wait for +CMGS:<mr> (and parse to message->mr) and then OK.
+    // TODO: wait for "+CMGS: <mr>" (and parse to message->mr) and then OK.
 	stat = gsm_cmd_wait(ctrlZ, "OK", 5000);		/* CTRL-Z ends message. Wait for 'OK' */
     if (stat != AT_OK)
     {
@@ -333,6 +333,68 @@ CMD_ERROR:
         gsm_release_serial_port();
     return stat;    
 }
+
+int gsm_read_sms(int index, gsm_sms_t *message)
+{
+    char tmp[256];
+    int stat;
+	const char *slre_err;
+    int was_locked;
+    was_locked = gsm_request_serial_port();
+
+    // TODO: Verify the modem is in a suitable state first
+    stat = gsm_cmd_wait("AT+CMGF=1", "OK", 500);
+    if (stat != AT_OK)
+    {
+        _DEBUG("gsm_cmd_wait(AT+CMGF=1) returned %d\r\n", stat);
+        goto CMD_ERROR;
+    }
+
+    snprintf(tmp, 255, "AT+CMGR=%d" GSM_CMD_LINE_END, index);
+    gsm_uart_write(tmp);
+    _DEBUG("Sent %s as CMD, waiting for '+CMGR:'\r\n", tmp);
+    // Just so our debug gets output first
+    chThdSleepMilliseconds(50);
+
+	stat = gsm_wait_cpy("\\+CMGR:", 500, tmp, sizeof(tmp));
+    if (stat != AT_OK)
+    {
+        _DEBUG("gsm_wait_cpy(\\+CMGR:) returned %d\r\n", stat);
+        goto CMD_ERROR;
+    }
+
+	/* Example: +CMGR: "REC READ","+358403445818","","13/05/13,18:00:15+12" */
+	slre_err = slre_match(0, "\\+CMGR:\\s\"[^\"]+\",\"([^\"]+)\",\"[^\"]*\",\"([^\"]+)\"", tmp, strlen(tmp),
+	                 SLRE_STRING, sizeof(message->number)-1, message->number,
+	                 SLRE_STRING, sizeof(message->time)-1, message->time
+	           );
+	if (NULL != slre_err)
+	{
+        _DEBUG("Could not parse headers, slre_match returned %s for %s\r\n", slre_err, tmp);
+        goto CMD_ERROR;
+	}
+
+	// Read the message itself
+	_DEBUG("Starting to read the message body\r\n");
+    // Just so our debug gets output first
+    chThdSleepMilliseconds(50);
+	stat = gsm_wait_cpy(GSM_CMD_LINE_END "OK", 5000, message->msg, sizeof(message->msg)-1);
+    if (stat != AT_OK)
+    {
+        _DEBUG("Failed to read message contents gsm_wait_cpy returned %d\r\n", stat);
+        goto CMD_ERROR;
+    }
+
+    if (!was_locked)
+        gsm_release_serial_port();
+
+    return AT_OK;
+CMD_ERROR:
+    if (!was_locked)
+        gsm_release_serial_port();
+    return stat;    
+}
+
 
 
 static void parse_network(char *line)
@@ -561,13 +623,16 @@ int gsm_wait_cpy(const char *pattern, int timeout, char *line, size_t buf_size)
         }
         if (i == 256) //Buffer full, start new
             i = 0;
+        /**
+         * This is bad! we can't do mathing like empty line and *then* OK, I hope nothing supposes this behaviour
         if (c == '\n') //End of line, start new buffer at next char
             i = 0;
+         */
     }
 
 
     if (line) {
-        strcpy(line, buf);
+        strncpy(line, buf, sizeof(buf));
         i = strlen(line);
         while (1) {
             if ( i == (buf_size-1) )

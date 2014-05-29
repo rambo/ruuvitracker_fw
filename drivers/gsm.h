@@ -41,7 +41,7 @@ typedef struct
 {
     char number[100]; // PONDER: this is probably way too large
     char msg[161];
-    char time[21]; // When receiving
+    char time[26]; // When receiving
     int  mr; // Message-reference (when sending)
 } gsm_sms_t;
 
@@ -70,6 +70,7 @@ void gsm_kill(void);                                                     /* Stop
 int gsm_get_state(void);                                                 /* Read state value */
 int gsm_delete_sms(int index);                                           /* Delete SMS in index */
 int gsm_send_sms(gsm_sms_t *message);                                    /* Send SMS message */
+int gsm_read_sms(int index, gsm_sms_t *message);                         /* Read SMS message from index */
 
 
 /* Internals */
