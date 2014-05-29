@@ -59,6 +59,7 @@ void gsm_stop(void);                                                     /* Stop
 void gsm_kill(void);                                                     /* Stop the modem, taking all power out */
 int gsm_get_state(void);                                                 /* Read state value */
 int gsm_delete_sms(int index);                                           /* Delete SMS in index */
+int gsm_send_sms(char* number, char* msg);                               /* Send SMS message */
 
 
 /* Internals */

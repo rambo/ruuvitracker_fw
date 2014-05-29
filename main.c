@@ -214,6 +214,8 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
         smsworker = NULL;
     } else if (0 == strcmp(argv[0], "smsdel")) {
         gsm_delete_sms(atoi(argv[1]));
+    } else if (0 == strcmp(argv[0], "smssend")) {
+        gsm_send_sms(argv[1], argv[2]);
     } else if (0 == strcmp(argv[0], "kill")) {
         gsm_kill();
     } else if (0 == strcmp(argv[0], "cmd")) {

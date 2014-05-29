@@ -283,6 +283,51 @@ int gsm_delete_sms(int index)
     return gsm_cmd_wait_fmt("OK", 500,"AT+CMGD=%d", index);
 }
 
+static const char ctrlZ[] = {26, 0};
+int gsm_send_sms(char* number, char* msg)
+{
+    int stat;
+    int was_locked;
+    was_locked = gsm_request_serial_port();
+
+    // TODO: Verify the modem is in a suitable state first
+    stat = gsm_cmd_wait("AT+CMGF=1", "OK", 500);
+    if (stat != AT_OK)
+    {
+        _DEBUG("gsm_cmd_wait(AT+CMGF=1) returned %d\r\n", stat);
+        goto CMD_ERROR;
+    }
+
+    char cmd[256];
+    // Here we must send on CR, *no LF*
+    snprintf(cmd, 256, "AT+CMGS=\"%s\"\r", number);
+    gsm_uart_write(cmd);
+    _DEBUG("Sent %s, waiting for '>'", cmd);
+    stat = gsm_wait(">", 5000);
+    if (stat != AT_OK)
+    {
+        _DEBUG("Failed when waiting for > after sending number, stat=%s\r\n", stat);
+        goto CMD_ERROR;
+    }
+    gsm_uart_write(msg);
+    
+	stat = gsm_cmd_wait(ctrlZ, "OK", 5000);		/* CTRL-Z ends message. Wait for 'OK' */
+    if (stat != AT_OK)
+    {
+        _DEBUG("Failed when waiting OK after sending message, stat=%s\r\n", stat);
+        goto CMD_ERROR;
+    }
+
+    if (!was_locked)
+        gsm_release_serial_port();
+
+    return AT_OK;
+CMD_ERROR:
+    if (!was_locked)
+        gsm_release_serial_port();
+    return stat;    
+}
+
 
 static void parse_network(char *line)
 {
@@ -460,6 +505,7 @@ int gsm_request_serial_port(void)
     chIQResetI(&(&SD3)->iqueue);
     chSysUnlock();
     sleep_disable();
+    // TODO: Why is this sleep here ?!? sleep_disable already sleeps...
     chThdSleepMilliseconds(10);
     D_EXIT();
     return 0;
