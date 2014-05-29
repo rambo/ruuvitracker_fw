@@ -34,6 +34,7 @@ struct backup_domain_data_t
     char pin[10];
     char trackerid[50];
     char sharedsecret[50];
+    unsigned int interval;
     uint32_t config_version;
 }; struct backup_domain_data_t * const backup_domain_data = (struct backup_domain_data_t *)BKPSRAM_BASE;
 static bool backup_domain_data_is_sane(void)
@@ -216,6 +217,8 @@ static void tracker_th(void *args)
     struct gps_data_t gps;
     int gsmstate=0;
     int gsmreply=0;
+    EventListener gpslistener;
+    int fix_type;
 
      tp_sync(1);
      gsm_start();
@@ -246,23 +249,43 @@ static void tracker_th(void *args)
      gsm_uart_write("AT+CNETLIGHT=0\r\n");
      gsm_set_apn(backup_domain_data->apn);
      gps_start();
+     // Wait for GPS to become ready for commands
+     while(gps_get_serial_port_validated() < 1)
+     {
+        chThdSleepMilliseconds(100);
+     }
+     gps_set_update_interval(backup_domain_data->interval);
      tp_sync(3);
 
-    // TODO: set the GPS update interval on module level
+    /*
+     * Register the event listener with the event source.  This is the only
+     * event this thread will be waiting for, so we choose the lowest eid.
+     * However, the eid can be anything from 0 - 31.
+     */
+    chEvtRegister(&gps_fix_updated, &gpslistener, 0);
     while (TRUE)
     {
-        /* Wait for fix */
-        // TODO: Use the event flag instead of polling
-        while (GPS_FIX_TYPE_NONE == gps_has_fix())
+        // Wait for fix...
+        tp_sync(4);
+        _DEBUG("Waiting for a fix\r\n");
+        /*
+         * We can now wait for our event.  Since we will only be waiting for
+         * a single event, we should use chEvtWaitOne()
+         */
+        chEvtWaitOne(EVENT_MASK(0));
+        fix_type = chEvtGetAndClearFlags(&gpslistener);
+        _DEBUG("Fix change signal received, type=%d\r\n", fix_type);
+        if (fix_type == GPS_FIX_TYPE_NONE)
         {
-            chThdSleepMilliseconds(1000);
-            tp_sync(4);
+            // No fix
+            continue;
         }
+
         gps = gps_get_data_nonblock();
         send_event(&gps);
+        // Doublecheck that this is set
+        gps_set_update_interval(backup_domain_data->interval);
         tp_sync(5);
-        // Wait for next
-        chThdSleepMilliseconds(5000);
     }
 }
 
@@ -270,6 +293,25 @@ static void tracker_th(void *args)
 /**
  * Set the config variables
  */
+static void cmd_interval(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    if (argc < 1)
+    {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
+        chprintf(chp, "GPS update interval is %d ms\r\n", backup_domain_data->interval);
+    }
+    else
+    {
+        backup_domain_data->interval=atoi(argv[0]);
+        // Set the signature (maybe someday it's a checksum)
+        backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+    }
+}
+
 static void cmd_apn(BaseSequentialStream *chp, int argc, char *argv[])
 {
     if (argc < 1)
@@ -357,6 +399,7 @@ static const ShellCommand commands[] = {
     {"pin", cmd_pin},
     {"trackerid", cmd_trackerid},
     {"secret", cmd_sharedsecret},
+    {"interval", cmd_interval},
     {NULL, NULL}
 };
 
