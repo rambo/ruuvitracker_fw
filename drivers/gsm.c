@@ -907,7 +907,10 @@ void gsm_stop(void)
         sdStop(&SD3);
         _DEBUG("Waiting for worker to exit\r\n");
         chThdWait(worker);
+        /**
+         * Reminder: static threads cannot be released
         chThdRelease(worker); 
+         */
         worker = NULL;
     }
     _DEBUG("Turning modem off\r\n");

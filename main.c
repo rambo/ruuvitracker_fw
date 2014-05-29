@@ -169,6 +169,7 @@ static void sms_thd(void *arg)
     (void)arg;
     chRegSetThreadName("sms_thd");
     EventListener smslisten;
+    eventmask_t   events;
     int sms_index;
     int stat;
     /*
@@ -179,12 +180,17 @@ static void sms_thd(void *arg)
     chEvtRegister(&gsm_evt_sms_arrived, &smslisten, 0);
     while (!chThdShouldTerminate())
     {
-        _DEBUG("Waiting for SMS event\r\n");
+        //_DEBUG("Waiting for SMS event\r\n");
         /*
          * We can now wait for our event.  Since we will only be waiting for
          * a single event, we should use chEvtWaitOne()
          */
-        chEvtWaitOne(EVENT_MASK(0));
+        events = chEvtWaitOneTimeout(EVENT_MASK(0), 100);
+        if (events != EVENT_MASK(0))
+        {
+            // Timed out
+            continue;
+        }
         _DEBUG("SMS event received\r\n");
         sms_index = chEvtGetAndClearFlags(&smslisten);
         _DEBUG("New SMS in index %d\r\n", sms_index);
@@ -220,7 +226,10 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
         gsm_stop();
         chThdTerminate(smsworker);
         chThdWait(smsworker);
-        chThdRelease(smsworker); 
+        /**
+         * Reminder: static threads cannot be released
+        chThdRelease(smsworker);
+         */
         smsworker = NULL;
     } else if (0 == strcmp(argv[0], "smsread")) {
         i = gsm_read_sms(atoi(argv[1]), &gsm_sms_default_container);
