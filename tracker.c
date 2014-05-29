@@ -418,7 +418,7 @@ static const ShellCommand commands[] = {
     {"secret", cmd_sharedsecret},
     {"interval", cmd_interval},
     {"gsm", cmd_gsm},
-    {"gsp", cmd_gps},
+    {"gps", cmd_gps},
     {NULL, NULL}
 };
 
