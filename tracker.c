@@ -37,6 +37,7 @@
 #define IPAD 0x36
 #define OPAD 0x5C
 
+
 /* Helper to get hash from library */
 static void get_hash(SHA1Context *sha, char *p)
 {

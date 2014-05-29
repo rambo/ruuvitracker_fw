@@ -51,11 +51,17 @@ static i2cflags_t i2c_errors = 0;
 /**
  * Backup domain data
  */
+#define BACKUP_CONFIG_VERSION (0xdeadbeef + 0)
 struct backup_domain_data_t
 {
     char apn[50];
     char pin[10];
+    uint32_t config_version;
 }; struct backup_domain_data_t * const backup_domain_data = (struct backup_domain_data_t *)BKPSRAM_BASE;
+static bool backup_domain_data_is_sane(void)
+{
+    return backup_domain_data->config_version == BACKUP_CONFIG_VERSION;
+}
 
 
 
@@ -74,6 +80,11 @@ static void cmd_bkp(BaseSequentialStream *chp, int argc, char *argv[])
     }
     if (0 == strcmp(argv[0], "get"))
     {
+        if (!backup_domain_data_is_sane())
+        {
+            chprintf(chp, "Backup data config version %x does not match expected %x\r\n", backup_domain_data->config_version, BACKUP_CONFIG_VERSION);
+            return;
+        }
         if (0 == strcmp(argv[1], "apn"))
         {
             chprintf(chp, "backup_domain_data->%s=%s\r\n", argv[1], backup_domain_data->apn);
@@ -92,10 +103,14 @@ static void cmd_bkp(BaseSequentialStream *chp, int argc, char *argv[])
         if (0 == strcmp(argv[1], "apn"))
         {
             strncpy(backup_domain_data->apn, argv[2], sizeof(backup_domain_data->apn));
+            // Set the signature (maybe someday it's a checksum)
+            backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
         }
         else if (0 == strcmp(argv[1], "pin"))
         {
             strncpy(backup_domain_data->pin, argv[2], sizeof(backup_domain_data->pin));
+            // Set the signature (maybe someday it's a checksum)
+            backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
         }
         else
         {
