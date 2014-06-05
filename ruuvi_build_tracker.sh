@@ -16,3 +16,4 @@ make
 cp -f main.c.backup main.c 
 sleep 2
 touch main.c
+echo "NOTE: Use ./ruuvi_program.sh instead of 'make flash'"
