@@ -168,7 +168,7 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
     }
 
     if (2 != sscanf(resp, "+HTTPACTION:%*d,%d,%d", &status, &len)) { /* +HTTPACTION:<method>,<result>,<lenght of data> */
-        _DEBUG("GSM: Failed to parse response\r\n");
+        _DEBUG("GSM: Failed to parse response %s\r\n", resp);
         goto HTTP_END;
     }
     _DEBUG("HTTP response %d len=%d\r\n", status, len);
