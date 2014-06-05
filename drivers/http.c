@@ -187,13 +187,8 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
         goto HTTP_END;
     }
 
-    // TODO: Shouldn't we do this with gsm_cmd_wait ??
-    gsm_uart_write("AT+HTTPREAD" GSM_CMD_LINE_END); //Read cmd
-    /* TODO: Implement these without platform specific serial port assumption */
-    while ('+' != sdGet(&SD3)) /* Skip +HTTPREAD: ... */
-        ;;
-    while ('\n' != sdGet(&SD3)) /* To the end of line */
-        ;;
+    gsm_cmd_wait("AT+HTTPREAD", "\\+HTTPREAD:.*?\n", TIMEOUT_HTTP);
+
     /* Rest of bytes are data */
     if (len != gsm_read_raw(response->content, len)) {
         _DEBUG("GSM: Timeout waiting for HTTP DATA\r\n");
