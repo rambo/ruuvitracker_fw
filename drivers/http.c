@@ -101,9 +101,12 @@ static int gsm_http_init(const char *url)
 
 static void gsm_http_clean(void)
 {
+    D_ENTER();
     if (AT_OK != gsm_cmd("AT+HTTPTERM")) {
+        _DEBUG("AT+HTTPTERM failed\r\n");
         gsm_gprs_disable();         /* This should get it to respond */
     }
+    D_EXIT();
 }
 
 static int gsm_http_send_content_type(const char *content_type)
@@ -184,6 +187,7 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
         goto HTTP_END;
     }
 
+    // TODO: Shouldn't we do this with gsm_cmd_wait ??
     gsm_uart_write("AT+HTTPREAD" GSM_CMD_LINE_END); //Read cmd
     /* TODO: Implement these without platform specific serial port assumption */
     while ('+' != sdGet(&SD3)) /* Skip +HTTPREAD: ... */
