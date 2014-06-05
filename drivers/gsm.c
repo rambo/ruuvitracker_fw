@@ -404,6 +404,7 @@ int gsm_read_sms(int index, gsm_sms_t *message)
     }
     _DEBUG("message->msg strlen=%d\r\n", strlen(message->msg));
 
+    // PONDER: I am not quite sure about this anymore, the reques/release does a lot of stuff...
     if (!was_locked)
         gsm_release_serial_port();
 

@@ -128,6 +128,7 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
                                       const char *data, const char *content_type)
 {
     int status=0,len,ret;
+    int was_locked;
     char resp[64];
     HTTP_Response *response = NULL;
 
@@ -160,7 +161,7 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
     }
 
     //block others from reading.
-    gsm_request_serial_port();
+    was_locked = gsm_request_serial_port();
 
     if (gsm_wait_cpy("\\+HTTPACTION", TIMEOUT_HTTP, resp, sizeof(resp)) == AT_TIMEOUT) {
         _DEBUG("GSM: HTTP Timeout\r\n");
@@ -202,7 +203,8 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
     _DEBUG("HTTP: Got %d of data\r\n", len);
 
 HTTP_END:
-    gsm_release_serial_port();
+    if (!was_locked)
+        gsm_release_serial_port();
     gsm_http_clean();
 
     return response;
