@@ -541,7 +541,7 @@ int gsm_cmd(const char *cmd)
 {
     int retry;
 
-    _DEBUG("%s\r\n", cmd);
+    //_DEBUG("%s\r\n", cmd);
     sleep_disable();
 
     /* Reset semaphore so we are sure that next time it is signalled
@@ -551,7 +551,9 @@ int gsm_cmd(const char *cmd)
     for(retry=0; retry<3; retry++) {
         gsm_uart_write(cmd);
         gsm_uart_write(GSM_CMD_LINE_END);
+        _DEBUG("Waiting reply for %s\r\n", cmd);
         if(RDY_OK != chBSemWaitTimeout(&gsm.waiting_reply, TIMEOUT_MS))
+            _DEBUG("chBSemWaitTimeout timed out, retry=%d\r\n", retry);
             gsm.reply = AT_TIMEOUT;
         if (gsm.reply != AT_TIMEOUT)
             break;
@@ -563,8 +565,10 @@ int gsm_cmd(const char *cmd)
     sleep_enable();
     if (retry == 3) {             /* Modem not responding */
         _DEBUG("%s", "Modem not responding!\r\n");
+        D_EXIT();
         return AT_TIMEOUT;
     }
+    D_EXIT();
     return gsm.reply;
 }
 

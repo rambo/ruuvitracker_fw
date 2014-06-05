@@ -117,13 +117,15 @@ static int gsm_http_send_content_type(const char *content_type)
 static int gsm_http_send_data(const char *data)
 {
     int r;
-    gsm_request_serial_port();
+    int was_locked;
+    was_locked = gsm_request_serial_port();
     r = gsm_cmd_wait_fmt("DOWNLOAD", TIMEOUT_MS, "AT+HTTPDATA=%d,1000", strlen(data));
     if (AT_OK != r)
         goto END;
     r = gsm_cmd_wait(data, "OK", TIMEOUT_MS);
 END:
-    gsm_release_serial_port();
+    if (!was_locked)
+        gsm_release_serial_port();
     return r;
 }
 
@@ -134,6 +136,8 @@ static HTTP_Response *gsm_http_handle(method_t method, const char *url,
     int was_locked;
     char resp[64];
     HTTP_Response *response = NULL;
+    // Do not try to release port if we did not request/get it
+    was_locked = 1;
 
     if (gsm_http_init(url) != 0) {
         _DEBUG("%s","GSM: Failed to initialize HTTP\r\n");
