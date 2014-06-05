@@ -309,6 +309,10 @@ static void cmd_interval(BaseSequentialStream *chp, int argc, char *argv[])
         backup_domain_data->interval=atoi(argv[0]);
         // Set the signature (maybe someday it's a checksum)
         backup_domain_data->config_version = BACKUP_CONFIG_VERSION;
+        if (gps_get_serial_port_validated())
+        {
+            gps_set_update_interval(backup_domain_data->interval);
+        }
     }
 }
 
