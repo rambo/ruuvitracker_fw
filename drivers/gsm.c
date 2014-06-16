@@ -37,6 +37,9 @@
 #include "hal.h"
 #include "power.h"
 #include "debug.h"
+#include <time.h>
+#include "chrtclib.h"
+
 
 /* ============ DEFINE GPIO PINS HERE =========*/
 #define STATUS_PIN  GPIOC_GSM_STATUS
@@ -123,6 +126,7 @@ static void parse_sms_in(char *line);
 //static void socket_receive(char *line);
 static void pdp_off(char *line);
 //static void socket_closed(char *line);
+static void network_time_received(char *line);
 
 /* Other prototypes */
 static void gsm_enable_hw_flow(void);
@@ -150,9 +154,9 @@ static Message urc_messages[] = {
     { "\\+COPS:",        .func = parse_network },
     { "\\+SAPBR:",       .func = parse_sapbr },
     { "\\+PDP: DEACT",   .func = pdp_off },
+    { "\\*PSUTTZ",       .func = network_time_received },
     /* TODO:
     +CREG // cell and location IDs, these are going to be handy if we try to do something like SUPL
-    *PSUTTZ // network time, sync STM32 RTC to this when available (probably need to set AT+CLTS=1)
     +CBTE // Battery temp (though this can and probably should be just a request/response command)
     +CBC // Battery voltage (though this can and probably should be just a request/response command)
     +CNETLIGHT // Netlight status (not URC, just a command, but implement it, LEDs precious suck power...)
@@ -246,6 +250,27 @@ static void gsm_state_parser(void)
     // This would allow threads to set enable URC for various parameters without messing 
     // with the URC parser and state machine.
 
+}
+
+/**
+ * Syncs the local RTC to the network (UTC) time
+ */
+static void network_time_received(char *line)
+{
+    struct tm time;
+    if (0 != slre_match(0, "\\*PSUTTZ: (\\d+), (\\d+), (\\d+), (\\d+), (\\d+), (\\d+)",
+        line, strlen(line),
+        SLRE_INT,sizeof(time.tm_year),&time.tm_year,
+        SLRE_INT,sizeof(time.tm_mon),&time.tm_mon,
+        SLRE_INT,sizeof(time.tm_mday),&time.tm_mday,
+        SLRE_INT,sizeof(time.tm_hour),&time.tm_hour,
+        SLRE_INT,sizeof(time.tm_min),&time.tm_min,
+        SLRE_INT,sizeof(time.tm_sec),&time.tm_sec))
+    {
+        _DEBUG("Failed to parse '%s'\r\n", line);
+        return;
+    }
+    rtcSetTimeTm(&RTCD1, &time);
 }
 
 static void pdp_off(char *line)
