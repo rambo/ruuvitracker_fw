@@ -183,7 +183,9 @@ static Message *lookup_urc_message(const char *line)
 {
     int n;
     for(n=0; urc_messages[n].msg; n++) {
+        //_DEBUG("Searching for '%s' in '%s'\r\n", urc_messages[n].msg, line);
         if (0 == slre_match(0, urc_messages[n].msg, line, strlen(line))) {
+            //_DEBUG("'%s' matched\r\n", urc_messages[n].msg);
             return &urc_messages[n];
         }
     }
@@ -487,6 +489,7 @@ static void parse_cfun(char *line)
 
 static void handle_ok(char *line)
 {
+    //_DEBUG("handle_ok called with '%s'\r\n", line);
     (void)line;
     gsm.reply = AT_OK;
     chBSemSignal(&gsm.waiting_reply);
@@ -553,8 +556,10 @@ int gsm_cmd(const char *cmd)
         gsm_uart_write(GSM_CMD_LINE_END);
         _DEBUG("Waiting reply for %s\r\n", cmd);
         if(RDY_OK != chBSemWaitTimeout(&gsm.waiting_reply, TIMEOUT_MS))
-            _DEBUG("chBSemWaitTimeout timed out, retry=%d\r\n", retry);
+        {
+            _DEBUG("chBSemWaitTimeout timed out (%d ms), retry=%d\r\n", TIMEOUT_MS, retry);
             gsm.reply = AT_TIMEOUT;
+        }
         if (gsm.reply != AT_TIMEOUT)
             break;
     }
