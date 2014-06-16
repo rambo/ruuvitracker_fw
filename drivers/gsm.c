@@ -563,7 +563,8 @@ int gsm_cmd(const char *cmd)
         _DEBUG("'%s' failed (%d)\r\n", cmd, gsm.reply);
 
     sleep_enable();
-    if (retry == 3) {             /* Modem not responding */
+    if (   retry == 3
+        && gsm.reply == AT_TIMEOUT) {             /* Modem not responding */
         _DEBUG("%s", "Modem not responding!\r\n");
         D_EXIT();
         return AT_TIMEOUT;
