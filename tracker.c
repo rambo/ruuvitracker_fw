@@ -15,6 +15,7 @@
 #include "drivers/sha1.h"
 #include "drivers/debug.h"
 #include "drivers/reset_button.h"
+#include "drivers/rtchelpers.h"
 #include "drivers/testplatform.h"
 
 
@@ -423,6 +424,9 @@ static const ShellCommand commands[] = {
     {"interval", cmd_interval},
     {"gsm", cmd_gsm},
     {"gps", cmd_gps},
+    {"alarm", cmd_alarm},
+    {"date", cmd_date},
+    {"wakeup", cmd_wakeup},
     {NULL, NULL}
 };
 
