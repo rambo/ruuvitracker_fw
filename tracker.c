@@ -436,6 +436,29 @@ static const ShellConfig shell_cfg1 = {
 };
 
 
+/*
+ * "blinks" the sync pulse 
+ */
+static WORKING_AREA(waBlinkerThd, 128);
+__attribute__((noreturn))
+static void BlinkerThd(void *arg)
+{
+    (void)arg;
+    chRegSetThreadName("blinker");
+    /** 
+     * Remove the noreturn attribute if using this check
+    while (!chThdShouldTerminate())
+    */
+    while (TRUE)
+    {
+        tp_sync(10);
+        chThdSleepMilliseconds(5000);
+    }
+    //chThdExit(0);
+}
+
+
+
 int main(void)
 {
     Thread *shelltp = NULL;
@@ -451,6 +474,7 @@ int main(void)
     // The tracker thread, this will initialized gps, gsm etc
     if (backup_domain_data_is_sane())
     {
+        chThdCreateStatic(waBlinkerThd, sizeof(waBlinkerThd), NORMALPRIO, (tfunc_t)BlinkerThd, NULL);
         chThdCreateStatic(myWA, sizeof(myWA), NORMALPRIO, (tfunc_t)tracker_th, NULL);
     }
     else
