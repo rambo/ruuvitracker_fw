@@ -159,6 +159,8 @@ void calculate_mac(char *secret)
 
 char *js_tostr(void)
 {
+    _DEBUG("Called\n");
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
      int i;
      static char str[4096]; //Again..assume.. when we crash, fix this.
      str[0] = '{';
@@ -196,16 +198,20 @@ static void send_event(struct gps_data_t *gps)
       first_time = 0;
      }
      calculate_mac(backup_domain_data->sharedsecret);
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
      json = js_tostr();
 
      _DEBUG("Sending JSON event:\r\n%s\r\nlen = %d\r\n", json, strlen(json));
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
      gsm_gprs_enable();
      response = http_post("http://dev-server.ruuvitracker.fi/api/v1-dev/events", json, "application/json");
      gsm_gprs_disable();
      if (!response) {
       _DEBUG("HTTP POST failed\r\n");
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
      } else {
       _DEBUG("HTTP response %d:\r\n%s\r\n", response->code, response->content);
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
       http_free(response);
      }
 }
