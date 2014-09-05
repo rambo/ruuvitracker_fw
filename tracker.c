@@ -221,7 +221,7 @@ static void send_event(struct gps_data_t *gps)
      }
 }
 
-static WORKING_AREA(WAtracker_th, 16384);
+static WORKING_AREA(WAtracker_th, 16384); // 16k is *way* too much, and still bad things happen on strcat
 __attribute__((noreturn))
 static void tracker_th(void *args)
 { 
