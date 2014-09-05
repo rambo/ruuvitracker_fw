@@ -401,6 +401,7 @@ static void cmd_gsm(BaseSequentialStream *chp, int argc, char *argv[])
     if (argc < 1)
     {
         chprintf(chp, "Usage: gsm AT_COMMAND\r\n");
+        return;
     }
     gsm_cmd(argv[0]);
 }
@@ -410,6 +411,7 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
     if (argc < 1)
     {
         chprintf(chp, "Usage: gps AT_COMMAND\r\n");
+        return;
     }
     gps_cmd(argv[0]);
 }
