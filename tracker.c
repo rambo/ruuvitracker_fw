@@ -166,6 +166,8 @@ char *js_tostr(void)
      str[0] = '{';
      str[1] = 0;
      for (i=0;i<ELEMS_IN_EVENT+1;i++) {
+     _DEBUG("i=%d strlen(str)=%d\n", i, strlen(str));
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
       if (i)
            strcat(str, ",");
       strcat(str, "\"");
@@ -175,6 +177,8 @@ char *js_tostr(void)
       strcat(str, "\" ");
      }
      strcat(str, "}");
+    _DEBUG("Done\n");
+     chThdSleepMilliseconds(100); // flush the USB serial buffer
      return str;
 }
 
