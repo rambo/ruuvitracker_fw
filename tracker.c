@@ -135,7 +135,7 @@ void js_replace(char *name, char *value)
      for (i=0;i<ELEMS_IN_EVENT;i++) {
       if (0 == strcmp(name, js_elems[i].name)) {
            if (js_elems[i].value)
-            free(js_elems[i].value);
+              free(js_elems[i].value);
            js_elems[i].value = value;
            break;
       }
@@ -144,7 +144,7 @@ void js_replace(char *name, char *value)
 
 void calculate_mac(char *secret)
 {
-     static char str[4096]; //Assume that it fits
+     static char str[2048]; //Assume that it fits
      int i;
      str[0] = 0;
      for (i=0;i<ELEMS_IN_EVENT;i++) {
@@ -162,7 +162,7 @@ char *js_tostr(void)
     _DEBUG("Called\n");
      chThdSleepMilliseconds(100); // flush the USB serial buffer
      int i;
-     static char str[4096]; //Again..assume.. when we crash, fix this.
+     static char str[2048]; //Again..assume.. when we crash, fix this.
      str[0] = '{';
      str[1] = 0;
      for (i=0;i<ELEMS_IN_EVENT+1;i++) {
@@ -175,6 +175,7 @@ char *js_tostr(void)
       strcat(str, "\": \"");
       strcat(str, js_elems[i].value);
       strcat(str, "\" ");
+      _DEBUG("str='%s'\n", str);
      }
      strcat(str, "}");
     _DEBUG("Done\n");
@@ -220,7 +221,7 @@ static void send_event(struct gps_data_t *gps)
      }
 }
 
-static WORKING_AREA(myWA, 4096);
+static WORKING_AREA(WAtracker_th, 16384);
 __attribute__((noreturn))
 static void tracker_th(void *args)
 { 
@@ -487,7 +488,7 @@ int main(void)
     if (backup_domain_data_is_sane())
     {
         chThdCreateStatic(waBlinkerThd, sizeof(waBlinkerThd), NORMALPRIO, (tfunc_t)BlinkerThd, NULL);
-        chThdCreateStatic(myWA, sizeof(myWA), NORMALPRIO, (tfunc_t)tracker_th, NULL);
+        chThdCreateStatic(WAtracker_th, sizeof(WAtracker_th), NORMALPRIO, (tfunc_t)tracker_th, NULL);
     }
     else
     {
