@@ -72,6 +72,18 @@ static bool backup_domain_data_is_sane(void)
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
 #define TEST_WA_SIZE    THD_WA_SIZE(256)
 
+/**
+ * SW-reset of the board
+ */
+static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)arg;
+    (void)arc;
+    chprintf(chp, "Bye!\r\n");
+    chThdSleepMilliseconds(100);
+    NVIC_SystemReset();
+}
+
 static void cmd_bkp(BaseSequentialStream *chp, int argc, char *argv[])
 {
     if (argc < 2) {
@@ -440,6 +452,7 @@ static const ShellCommand commands[] = {
     {"tp_sync", cmd_tp_sync},
     {"tp_set_syncpin", cmd_tp_set_syncpin},
     {"bkp", cmd_bkp},
+    {"reset", cmd_reset},
     {NULL, NULL}
 };
 

@@ -427,6 +427,19 @@ static void cmd_gps(BaseSequentialStream *chp, int argc, char *argv[])
     gps_cmd(argv[0]);
 }
 
+/**
+ * SW-reset of the board
+ */
+static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[])
+{
+    (void)arg;
+    (void)arc;
+    chprintf(chp, "Bye!\r\n");
+    chThdSleepMilliseconds(100);
+    NVIC_SystemReset();
+}
+
+
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
 
 static const ShellCommand commands[] = {
@@ -440,6 +453,7 @@ static const ShellCommand commands[] = {
     {"alarm", cmd_alarm},
     {"date", cmd_date},
     {"wakeup", cmd_wakeup},
+    {"reset", cmd_reset},
     {NULL, NULL}
 };
 
