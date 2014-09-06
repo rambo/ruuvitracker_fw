@@ -77,8 +77,8 @@ static bool backup_domain_data_is_sane(void)
  */
 static void cmd_reset(BaseSequentialStream *chp, int argc, char *argv[])
 {
-    (void)arg;
-    (void)arc;
+    (void)argv;
+    (void)argc;
     chprintf(chp, "Bye!\r\n");
     chThdSleepMilliseconds(100);
     NVIC_SystemReset();
