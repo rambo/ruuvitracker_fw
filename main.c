@@ -31,22 +31,12 @@
 #include "drivers/usb_serial.h"
 #include "drivers/gps.h"
 #include "drivers/gsm.h"
+#include "drivers/acc.h"
 #include "drivers/http.h"
 #include "drivers/reset_button.h"
 #include "drivers/rtchelpers.h"
 #include "drivers/sdcard.h"
 #include "drivers/testplatform.h"
-
-/* I2C interface #1 */
-// TODO: This should probably be defined in board.h or something. It needs to be globally accessible because in case of I2C timeout we *must* reinit the whole I2C subsystem
-static const I2CConfig i2cfg1 = {
-    OPMODE_I2C,
-    400000,
-    FAST_DUTY_CYCLE_2,
-};
-// TODO: I guess this does not have to be global
-static i2cflags_t i2c_errors = 0;
-
 
 /**
  * Backup domain data
@@ -412,44 +402,51 @@ static void cmd_accread(BaseSequentialStream *chp, int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
-    msg_t status = RDY_OK;
-    //uint8_t txbuff[1];
-    uint8_t rxbuff[6];
-    uint8_t txbuff[1];
-    txbuff[0] = 0x0; // register
-    uint8_t addr = 0x1d; // 7-bit address
-    i2cAcquireBus(&I2CD1);
-    i2cStart(&I2CD1, &i2cfg1);
-    status = i2cMasterTransmitTimeout(&I2CD1, addr, txbuff, 1, rxbuff, 6, MS2ST(500));
-    switch(status)
-    {
-        case RDY_OK:
-        {
-            uint8_t i;
-            for (i=0; i<6; i++)
-            {
-                chprintf(chp, "Device 0x%02X reg 0x%02X value 0x%02X\r\n", addr, txbuff[0]+i, rxbuff[i]);
-            }
-            break;
-        }
-        case RDY_RESET:
-            i2c_errors = i2cGetErrors(&I2CD1);
-            chprintf(chp, "error for device at 0x%02X, errors: 0x%02X I2C1->SR1=0x%04X\r\n", addr, i2c_errors, I2C1->SR1);
-            // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
-            i2cStop(&I2CD1);
-            I2C1->CR1 |= I2C_CR1_SWRST;
-            i2cStart(&I2CD1, &i2cfg1);
-            break;
-        case RDY_TIMEOUT:
-            chprintf(chp, "TIMEOUT for device at 0x%02X\r\n", addr, i2c_errors);
-            // Reset copied from http://forum.chibios.org/phpbb/viewtopic.php?f=2&t=777
-            i2cStop(&I2CD1);
-            I2C1->CR1 |= I2C_CR1_SWRST;
-            i2cStart(&I2CD1, &i2cfg1);
-            break;
+
+    if (acc_set_mode(ACC_ACTIVE_MODE) != ACC_OK) {
+        chprintf(chp, "FAILED TO SET MODE TO ACTIVE\r\n");
+        return;
     }
-    i2cStop(&I2CD1);
-    i2cReleaseBus(&I2CD1);
+
+    // Wait for data to be ready
+    // ### Add function for checking this
+    chThdSleepMilliseconds(50);
+
+    while (chnGetTimeout((BaseChannel *)chp, TIME_IMMEDIATE) == Q_TIMEOUT) {
+        chprintf(chp, "press enter to stop \r\n");
+        {
+            int x, y, z;
+            if (acc_read_xyz_counts(&x, &y, &z) != ACC_OK) {
+                chprintf(chp, "FAILED TO READ XYZ COUNTS!!\r\n");
+                return;
+            }
+            chprintf(chp, "x (counts): %i\r\n", x);
+            chprintf(chp, "y (counts): %i\r\n", y);
+            chprintf(chp, "z (counts): %i\r\n", z);
+        }
+
+        // Wait for data to be ready
+        // ### Add function for checking this
+        chThdSleepMilliseconds(50);
+
+        {
+            float x, y, z;
+            if (acc_read_xyz_g(&x, &y, &z) != ACC_OK) {
+                chprintf(chp, "FAILED TO READ XYZ G!!\r\n");
+                return;
+            }
+            // Dummy buffer to print float values
+            char dummy[256];
+            snprintf(dummy, sizeof(dummy),
+                     "x (g): %f\r\n"
+                     "y (g): %f\r\n"
+                     "z (g): %f\r\n",
+                     x, y, z);
+            chprintf(chp, dummy);
+        }
+
+        chThdSleepMilliseconds(1000);
+    }
 }    
 
 
