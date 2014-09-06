@@ -1,0 +1,30 @@
+--- ChibiOS/os/ports/GCC/ARMCMx/crt0.c.old	2014-09-06 16:42:30.000000000 +0300
++++ ChibiOS/os/ports/GCC/ARMCMx/crt0.c	2014-09-06 16:54:06.000000000 +0300
+@@ -214,6 +214,12 @@
+  */
+ extern funcp_t __fini_array_end;
+ 
++/**
++ * @brief   Ram end.
++ * @pre     The symbol must be aligned to a 32 bits boundary.
++ */
++extern uint32_t __ram_end__;
++
+ /** @} */
+ 
+ /**
+@@ -271,6 +277,14 @@
+   /* Process Stack initialization, it is allocated starting from the
+      symbol __process_stack_end__ and its lower limit is the symbol
+      __process_stack_base__.*/
++
++  /* swreset.patch applied */
++  uint32_t *magic_word =  (uint32_t *)(SYMVAL(__ram_end__) - 4); // look at the last word in ram
++  if (*magic_word == 0xDEADBEEF) {
++      *magic_word = 0; // reset magic flag
++      ((funcp_t) (*(uint32_t *)0x1FFF0004U))(); // jump into boot loader
++  }
++
+   asm volatile ("cpsid   i");
+   psp = SYMVAL(__process_stack_end__);
+   asm volatile ("msr     PSP, %0" : : "r" (psp));
