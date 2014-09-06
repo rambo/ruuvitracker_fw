@@ -225,6 +225,7 @@ __attribute__((noreturn))
 static void tracker_th(void *args)
 { 
     (void)args;
+    chRegSetThreadName("tracker");
     struct gps_data_t gps;
     int gsmstate=0;
     int gsmreply=0;
